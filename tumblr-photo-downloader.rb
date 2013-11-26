@@ -93,10 +93,13 @@ concurrency.times do
 
           # This often arises from requesting too many things.
           # If this is the case, let's try to just save the files again.
-          rescue Timeout::Error
-            # Take a break, man.
-            sleep 1
-            next
+          rescue Mechanize::ResponseCodeError => e
+            # Timeout error
+            if Net::HTTPResponse::CODE_TO_OBJ[e] == 408
+              # Take a break, man.
+              sleep 1
+              next
+            end
 
           rescue Net::HTTPForbidden
             $badFile << url
@@ -113,18 +116,6 @@ concurrency.times do
   }
 end
 
-# The bad file handler
-threads << Thread.new {
-  loop {
-    url = $badFile.pop
-    break if url == "STOP"
-
-    File.open("#{logs}/badurl", "w+") do | f1 |
-      f1.write(url)
-    end
-  }
-}
-
 loop do
   page_url = "http://#{site}/api/read?type=photo&num=#{num}&start=#{start}"
 
@@ -133,6 +124,12 @@ loop do
     begin
       page = Mechanize.new.get(page_url)
       break
+
+    rescue Mechanize::ResponseCodeError => e
+      if Net::HTTPResponse::CODE_TO_OBJ[e] == 404
+        puts "Fatal Error"
+        exit
+      end
 
     rescue
       puts "Error stream (#{page_url}), #{$!} - retrying"
@@ -153,7 +150,7 @@ loop do
 
     images, added = parsefile doc
 
-    puts "| #{page_url}\n| #{md5} +#{added.count} images found (start at #{start})"
+    puts "| #{page_url} +#{added.count}"
     
     if images.count < num
       puts "All pages downloaded. Waiting for images"
@@ -169,3 +166,12 @@ concurrency.times do
 end
 
 threads.each{|t| t.join }
+
+loop {
+  break if $badFile.empty?
+  url = $badFile.pop
+
+  File.open("#{logs}/badurl", "w+") do | f1 |
+    f1.write(url)
+  end
+}
