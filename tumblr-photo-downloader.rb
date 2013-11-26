@@ -59,6 +59,8 @@ concurrency.times do
           # This often arises from requesting too many things.
           # If this is the case, let's try to just save the files again.
           rescue Timeout::Error
+            # Take a break, man.
+            sleep 1
             next
 
           rescue
@@ -73,7 +75,20 @@ end
 
 loop do
   url = "http://#{site}/api/read?type=photo&num=#{num}&start=#{start}"
-  page = Mechanize.new.get(url)
+
+  page = ''
+  loop {
+    begin
+      page = Mechanize.new.get(url)
+      break
+
+    rescue
+      puts "Error getting file (#{url}), #{$!} - retrying"
+      sleep 1
+      next
+    end
+  }
+
   md5 = Digest::MD5.hexdigest(page.to_s)
 
   # Log the content that we are getting
