@@ -6,7 +6,7 @@ Bundler.require
 site = ARGV[0]
 site = site.split('/').pop
 directory = ARGV[1] ? ARGV[1] : site
-queue = Queue.new
+$queue = Queue.new
 
 if site.nil? || site.empty?
   puts
@@ -35,25 +35,23 @@ FileUtils.mkdir_p(logs)
 
 num = 50
 start = 0
-allImages = []
+$allImages = []
 
 threads = []
 concurrency.times do 
   threads << Thread.new {
     loop {
-      url = queue.pop
-      break if url == 'STOP'
+      url = $queue.pop
+      break if url == "STOP"
       
       filename = url.split('/').pop
       
-      if File.exists?("#{directory}/#{filename}")
-        # puts "#{queue.length} Already have #{url}"
-      else
+      unless File.exists?("#{directory}/#{filename}")
         loop {
           begin
             file = Mechanize.new.get(url)
             file.save_as("#{directory}/#{filename}")
-            puts "#{allImages.length - queue.length}/#{allImages.length} #{site} #{filename}"
+            puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{site} #{filename}"
             break
 
           # This often arises from requesting too many things.
@@ -63,7 +61,7 @@ concurrency.times do
             sleep 1
             next
 
-          rescue
+          else
             puts "Error getting file (#{url}), #{$!}"
             break
           end
@@ -73,30 +71,7 @@ concurrency.times do
   }
 end
 
-loop do
-  url = "http://#{site}/api/read?type=photo&num=#{num}&start=#{start}"
-
-  page = ''
-  loop {
-    begin
-      page = Mechanize.new.get(url)
-      break
-
-    rescue
-      puts "Error getting file (#{url}), #{$!} - retrying"
-      sleep 1
-      next
-    end
-  }
-
-  doc = Nokogiri::XML.parse(page.body)
-  md5 = Digest::MD5.hexdigest(doc.to_s)
-
-  # Log the content that we are getting
-  File.open([logs, md5].join('/'), 'w') { | f |
-    f.write(doc.to_s)
-  }
-
+def parsefile(doc)
   images = (doc/'post photo-url').select{|x| x if x['max-width'].to_i == 1280 }
   image_urls = images.map {|x| x.content }
 
@@ -105,27 +80,65 @@ loop do
   image_urls.uniq!
   
   # Eliminate images we've already downloaded
-  image_urls = image_urls - allImages
+  image_urls = image_urls - $allImages
 
   # Add this to the list
-  allImages += image_urls
+  $allImages += image_urls
 
   image_urls.each do |url|
-    queue << url
+    $queue << url
+  end
+  [images, image_urls]
+end
+
+Dir.glob("#{logs}/*") { | file |
+  File.open(file, 'r') { | content |
+    puts ">> #{file}"
+    parsefile Nokogiri::XML.parse(content)
+  }
+}
+
+loop do
+  page_url = "http://#{site}/api/read?type=photo&num=#{num}&start=#{start}"
+
+  page = ''
+  loop {
+    begin
+      page = Mechanize.new.get(page_url)
+      break
+
+    rescue
+      puts "Error stream (#{page_url}), #{$!} - retrying"
+      sleep 1
+      next
+    end
+  }
+
+  doc = Nokogiri::XML.parse(page.body)
+  md5 = Digest::MD5.hexdigest(doc.to_s)
+  logFile = [logs, md5].join('/')
+
+  unless File.exists?(logFile)
+    # Log the content that we are getting
+    File.open(logFile, 'w') { | f |
+      f.write(doc.to_s)
+    }
+
+    images, added = parsefile doc
+
+    puts "| #{page_url}\n| #{md5} +#{added.count} images found (start at #{start})"
+    
+    if images.count < num
+      puts "All pages downloaded. Waiting for images"
+      break
+    end
   end
 
-  puts ">> +#{images.count} images found (num=#{num} :: start at #{start})"
-  
-  if images.count < num
-    puts "All pages downloaded. Waiting for images"
-    break
-  else
-    start += num
-  end
+  start += num
 end
 
 concurrency.times do 
-  queue << 'STOP'
+  $queue << 'STOP'
 end
 
 threads.each{|t| t.join }
