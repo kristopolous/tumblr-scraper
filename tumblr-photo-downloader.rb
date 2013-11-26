@@ -4,7 +4,9 @@ require 'digest/md5'
 Bundler.require
 
 site = ARGV[0]
+site = site.split('/').pop
 directory = ARGV[1] ? ARGV[1] : site
+queue = Queue.new
 
 if site.nil? || site.empty?
   puts
@@ -35,6 +37,31 @@ num = 50
 start = 0
 allImages = []
 
+threads = []
+concurrency.times do 
+  threads << Thread.new {
+    loop {
+      begin
+        url = queue.pop
+        break if url == 'STOP'
+        
+        filename = url.split('/').pop
+        
+        if File.exists?("#{directory}/#{filename}")
+          puts "#{queue.length} Already have #{url}"
+        else
+          file = Mechanize.new.get(url)
+          puts "#{queue.length} Saving photo #{url}"
+          file.save_as("#{directory}/#{filename}")
+        end
+
+      rescue
+        puts "Error getting file, #{$!}"
+      end
+    }
+  }
+end
+
 loop do
   url = "http://#{site}/api/read?type=photo&num=#{num}&start=#{start}"
   page = Mechanize.new.get(url)
@@ -50,8 +77,6 @@ loop do
   images = (doc/'post photo-url').select{|x| x if x['max-width'].to_i == 1280 }
   image_urls = images.map {|x| x.content }
 
-  already_had = 0
-  
   # Eliminate duplicate images.
   image_urls.sort!
   image_urls.uniq!
@@ -62,40 +87,22 @@ loop do
   # Add this to the list
   allImages << image_urls
 
-  image_urls.each_slice(concurrency).each do |group|
-    threads = []
-    group.each do |url|
-      threads << Thread.new {
-        begin
-          file = Mechanize.new.get(url)
-          filename = File.basename(file.uri.to_s.split('?')[0])
-          
-          if File.exists?("#{directory}/#{filename}")
-            puts "Already have #{url}"
-            already_had += 1
-          else
-            puts "Saving photo #{url}"
-            file.save_as("#{directory}/#{filename}")
-          end
-
-        rescue
-          puts "Error getting file, #{$!}"
-        end
-      }
-    end
-    threads.each{|t| t.join }
+  image_urls.each do |url|
+    queue << url
   end
 
-  puts "#{images.count} images found (num=#{num})"
+  puts ">> +#{images.count} images found (num=#{num} :: start at #{start})"
   
   if images.count < num
-    puts "Our work here is done"
-    break
-  elsif already_had == num
-    puts "Had already downloaded the last #{already_had} of #{num} most recent images - done."
+    puts "All pages downloaded. Waiting for images"
     break
   else
     start += num
   end
-
 end
+
+concurrency.times do 
+  queue << 'STOP'
+end
+
+threads.each{|t| t.join }
