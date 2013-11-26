@@ -41,22 +41,31 @@ threads = []
 concurrency.times do 
   threads << Thread.new {
     loop {
-      begin
-        url = queue.pop
-        break if url == 'STOP'
-        
-        filename = url.split('/').pop
-        
-        if File.exists?("#{directory}/#{filename}")
-          puts "#{queue.length} Already have #{url}"
-        else
-          file = Mechanize.new.get(url)
-          puts "#{queue.length} Saving photo #{url}"
-          file.save_as("#{directory}/#{filename}")
-        end
+      url = queue.pop
+      break if url == 'STOP'
+      
+      filename = url.split('/').pop
+      
+      if File.exists?("#{directory}/#{filename}")
+        # puts "#{queue.length} Already have #{url}"
+      else
+        loop {
+          begin
+            file = Mechanize.new.get(url)
+            file.save_as("#{directory}/#{filename}")
+            puts "#{allImages.length - queue.length}/#{allImages.length} #{site} #{filename}"
+            break
 
-      rescue
-        puts "Error getting file, #{$!}"
+          # This often arises from requesting too many things.
+          # If this is the case, let's try to just save the files again.
+          rescue Timeout::Error
+            next
+
+          rescue
+            puts "Error getting file (#{url}), #{$!}"
+            break
+          end
+        }
       end
     }
   }
@@ -85,7 +94,7 @@ loop do
   image_urls = image_urls - allImages
 
   # Add this to the list
-  allImages << image_urls
+  allImages += image_urls
 
   image_urls.each do |url|
     queue << url
