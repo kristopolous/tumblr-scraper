@@ -16,8 +16,18 @@ end
 
 concurrency = 8
 
+# Create the directory from the base directory AND the tumblr site
+directory = [directory, site].join('/')
+
+# Create a log directory
+logs = [directory, 'logs'].join('/')
+
 puts "Downloading photos from #{site.inspect}, concurrency=#{concurrency} ..."
+
+# Make the download directory
 FileUtils.mkdir_p(directory)
+
+FileUtils.mkdir_p(logs)
 
 num = 50
 start = 0
