@@ -7,6 +7,7 @@ site = ARGV[0]
 site = site.split('/').pop
 directory = ARGV[1] ? ARGV[1] : site
 $queue = Queue.new
+$badFile = Queue.new
 
 if site.nil? || site.empty?
   puts
@@ -33,11 +34,47 @@ FileUtils.mkdir_p(directory)
 # Make the log directory
 FileUtils.mkdir_p(logs)
 
+threads = []
 num = 50
 start = 0
 $allImages = []
 
-threads = []
+def parsefile(doc)
+  images = (doc/'post photo-url').select{|x| x if x['max-width'].to_i == 1280 }
+  image_urls = images.map {|x| x.content }
+
+  # Eliminate duplicate images.
+  image_urls.sort!
+  image_urls.uniq!
+  
+  # Eliminate images we've already downloaded
+  image_urls = image_urls - $allImages
+
+  # Add this to the list
+  $allImages += image_urls
+
+  image_urls.each do |url|
+    $queue << url
+  end
+  [images, image_urls]
+end
+
+Dir.glob("#{logs}/*") { | file |
+  if file == "badurl"
+
+    File.open(file, 'r') { | content |
+      # Start the list with the bad images
+      $allImages = content.split('\n')
+    }
+
+  else
+    File.open(file, 'r') { | content |
+      images, count = parsefile Nokogiri::XML.parse(content)
+      puts ">> #{file} +#{count.length}"
+    }
+  end
+}
+
 concurrency.times do 
   threads << Thread.new {
     loop {
@@ -61,9 +98,14 @@ concurrency.times do
             sleep 1
             next
 
-          else
+          rescue Net::HTTPForbidden
+            $badFile << url
+            break
+            
+          rescue
             puts "Error getting file (#{url}), #{$!}"
             break
+
           end
         }
       end
@@ -71,30 +113,15 @@ concurrency.times do
   }
 end
 
-def parsefile(doc)
-  images = (doc/'post photo-url').select{|x| x if x['max-width'].to_i == 1280 }
-  image_urls = images.map {|x| x.content }
+# The bad file handler
+threads << Thread.new {
+  loop {
+    url = $badFile.pop
+    break if url == "STOP"
 
-  # Eliminate duplicate images.
-  image_urls.sort!
-  image_urls.uniq!
-  
-  # Eliminate images we've already downloaded
-  image_urls = image_urls - $allImages
-
-  # Add this to the list
-  $allImages += image_urls
-
-  image_urls.each do |url|
-    $queue << url
-  end
-  [images, image_urls]
-end
-
-Dir.glob("#{logs}/*") { | file |
-  File.open(file, 'r') { | content |
-    puts ">> #{file}"
-    parsefile Nokogiri::XML.parse(content)
+    File.open("#{logs}/badurl", "w+") do | f1 |
+      f1.write(url)
+    end
   }
 }
 
@@ -138,7 +165,7 @@ loop do
 end
 
 concurrency.times do 
-  $queue << 'STOP'
+  $queue << "STOP"
 end
 
 threads.each{|t| t.join }
