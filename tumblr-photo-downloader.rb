@@ -77,9 +77,16 @@ Dir.glob("#{logs}/*") { | file |
 
 concurrency.times do 
   threads << Thread.new {
+    Thread.abort_on_exception = true
+
     loop {
-      url = $queue.pop
-      break if url == "STOP"
+      begin
+        url = $queue.pop
+        break if url == "STOP"
+      rescue
+        puts "Queue failure, trying again, #{$!}"
+        next
+      end
       
       filename = url.split('/').pop
       
