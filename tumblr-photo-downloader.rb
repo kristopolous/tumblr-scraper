@@ -102,15 +102,17 @@ concurrency.times do
           # If this is the case, let's try to just save the files again.
           rescue Mechanize::ResponseCodeError => e
             # Timeout error
-            if Net::HTTPResponse::CODE_TO_OBJ[e] == 408
+            if Net::HTTPResponse::CODE_TO_OBJ[e] == 403
+              puts "Bad File"
+              $badFile << url
+              break
+            elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 408
               # Take a break, man.
               sleep 1
               next
+            else
+              break
             end
-
-          rescue Net::HTTPForbidden
-            $badFile << url
-            break
             
           rescue
             puts "Error getting file (#{url}), #{$!}"
@@ -174,6 +176,7 @@ end
 
 threads.each{|t| t.join }
 
+puts "Ok done. Adding 403s to blacklist"
 loop {
   break if $badFile.empty?
   url = $badFile.pop
