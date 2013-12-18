@@ -1,4 +1,6 @@
 sites
+*~
+*swp
 .bundle
 .DS_Store
 .gems

@@ -57,6 +57,7 @@ def parsefile(doc)
 
   # Add this to the list
   $allImages += image_urls
+  $allImages += posts
 
   posts.each do | url |
     $queue << [:page, url]
@@ -87,7 +88,7 @@ if $useLogs
 end
 
 def graphGet(file)
-  file.match(/'GET','([^']*)'/) { | x | 
+  file.match(/.GET...([^']*)/) { | x | 
     url = ['http://', $site, x].join('')
     puts url
   }
@@ -213,6 +214,11 @@ if $getPages
       images, added = parsefile doc
 
       puts "| #{page_url} +#{added.count}"
+
+      if added.count == 0
+        puts "Guessing that we have everything else. Not downloading any more pages. Waiting for images."
+        break
+      end
       
       if images.count < num
         puts "All pages downloaded. Waiting for images"
