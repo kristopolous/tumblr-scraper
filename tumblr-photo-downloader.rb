@@ -71,6 +71,7 @@ end
 
 if $useLogs
   Dir.glob("#{logs}/*") { | file |
+
     if file == "badurl"
 
       File.open(file, 'r') { | content |
@@ -81,8 +82,15 @@ if $useLogs
     else
       File.open(file, 'r') { | content |
         images, count = parsefile Nokogiri::XML.parse(content)
-        puts ">> #{file} +#{count.length}"
+
+        if count.length > 0
+          puts ">> #{file} +#{count.length}"
+        else
+          puts ">> #{file} +#{count.length} (removed)"
+          File.delete(file) if count.length == 0
+        end
       }
+
     end
   }
 end
@@ -206,20 +214,21 @@ if $getPages
     logFile = [logs, md5].join('/')
 
     unless File.exists?(logFile)
-      # Log the content that we are getting
-      File.open(logFile, 'w') { | f |
-        f.write(doc.to_s)
-      }
-
       images, added = parsefile doc
 
       puts "| #{page_url} +#{added.count}"
 
+      # If this file added nothing, then break here and don't save it.
       if added.count == 0
         puts "Guessing that we have everything else. Not downloading any more pages. Waiting for images."
         break
       end
       
+      # Log the content that we are getting
+      File.open(logFile, 'w') { | f |
+        f.write(doc.to_s)
+      }
+
       if images.count < num
         puts "All pages downloaded. Waiting for images"
         break
