@@ -9,15 +9,6 @@ directory = ARGV[1] ? ARGV[1] : site
 $queue = Queue.new
 $badFile = Queue.new
 
-if site.nil? || site.empty?
-  puts
-  puts "Usage: #{File.basename(__FILE__)} URL [directory to save in]"
-  puts "eg. #{File.basename(__FILE__)} jamiew.tumblr.com"
-  puts "eg. #{File.basename(__FILE__)} jamiew.tumblr.com ~/pictures/jamiew-tumblr-images/"
-  puts
-  exit 1
-end
-
 concurrency = 2
 
 # Create the directory from the base directory AND the tumblr site
@@ -45,27 +36,12 @@ def parsefile(doc)
     list.each { | x |
       all << x
       $queue << x
+      $allImages << x
     }
   }
   [all, all]
 end
-=begin
-Dir.glob("#{logs}/*") { | file |
-  if file == "badurl"
 
-    File.open(file, 'r') { | content |
-      # Start the list with the bad images
-      $allImages = content.split('\n')
-    }
-
-  else
-    File.open(file, 'r') { | content |
-      images, count = parsefile Nokogiri::XML.parse(content)
-      puts ">> #{file} +#{count.length}"
-    }
-  end
-}
-=end
 concurrency.times do 
   threads << Thread.new {
     Thread.abort_on_exception = true
@@ -85,7 +61,6 @@ concurrency.times do
         list.each { | x |
           if x.match(/video_file/)
             videoList << x
-            $allImages << x
           end
         }
       }
@@ -151,24 +126,14 @@ loop do
     end
   }
 
-  md5 = Digest::MD5.hexdigest(page.body)
-  logFile = [logs, md5].join('/')
+  videos, added = parsefile page.body
 
-#  unless File.exists?(logFile)
-    # Log the content that we are getting
-#    File.open(logFile, 'w') { | f |
-#      f.write(doc.to_s)
-#    }
-
-    images, added = parsefile page.body
-
-    puts "| #{page_url} +#{added.count}"
-    
-    if images.count < num
-      puts "All pages downloaded. Waiting for videos"
-      break
-    end
-#  end
+  puts "| #{page_url} +#{added.count}"
+  
+  if videos.count < num
+    puts "All pages downloaded. Waiting for videos"
+    break
+  end
 
   start += num
 end
