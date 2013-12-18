@@ -3,13 +3,15 @@ require 'bundler'
 require 'digest/md5'
 Bundler.require
 
-site = ARGV[0]
-site = site.split('/').pop
-directory = ARGV[1] ? ARGV[1] : site
+$site = ARGV[0]
+$site = $site.split('/').pop
+directory = ARGV[1] ? ARGV[1] : $site
 $queue = Queue.new
 $badFile = Queue.new
+$useLogs = true
+$getPages = true
 
-if site.nil? || site.empty?
+if $site.nil? || $site.empty?
   puts
   puts "Usage: #{File.basename(__FILE__)} URL [directory to save in]"
   puts "eg. #{File.basename(__FILE__)} jamiew.tumblr.com"
@@ -18,21 +20,23 @@ if site.nil? || site.empty?
   exit 1
 end
 
-concurrency = 8
+concurrency = 2
 
 # Create the directory from the base directory AND the tumblr site
-directory = [directory, site].join('/')
+directory = [directory, $site].join('/')
 
 # Create a log directory
 logs = [directory, 'logs'].join('/')
+graphs = [directory, 'graphs'].join('/')
 
-puts "Downloading photos from #{site.inspect}, concurrency=#{concurrency} ..."
+puts "Downloading photos from #{$site.inspect}, concurrency=#{concurrency} ..."
 
 # Make the download directory
 FileUtils.mkdir_p(directory)
 
 # Make the log directory
 FileUtils.mkdir_p(logs)
+FileUtils.mkdir_p(graphs)
 
 threads = []
 num = 50
@@ -41,6 +45,7 @@ $allImages = []
 
 def parsefile(doc)
   images = (doc/'post photo-url').select{|x| x if x['max-width'].to_i == 1280 }
+  posts = (doc/'post').map {|x| x['url']}
   image_urls = images.map {|x| x.content }
 
   # Eliminate duplicate images.
@@ -53,27 +58,40 @@ def parsefile(doc)
   # Add this to the list
   $allImages += image_urls
 
+  posts.each do | url |
+    $queue << [:page, url]
+  end
+
   image_urls.each do |url|
-    $queue << url
+    $queue << [:image, url]
   end
   [images, image_urls]
 end
 
-Dir.glob("#{logs}/*") { | file |
-  if file == "badurl"
+if $useLogs
+  Dir.glob("#{logs}/*") { | file |
+    if file == "badurl"
 
-    File.open(file, 'r') { | content |
-      # Start the list with the bad images
-      $allImages = content.split('\n')
-    }
+      File.open(file, 'r') { | content |
+        # Start the list with the bad images
+        $allImages = content.split('\n')
+      }
 
-  else
-    File.open(file, 'r') { | content |
-      images, count = parsefile Nokogiri::XML.parse(content)
-      puts ">> #{file} +#{count.length}"
-    }
-  end
-}
+    else
+      File.open(file, 'r') { | content |
+        images, count = parsefile Nokogiri::XML.parse(content)
+        puts ">> #{file} +#{count.length}"
+      }
+    end
+  }
+end
+
+def graphGet(file)
+  file.match(/'GET','([^']*)'/) { | x | 
+    url = ['http://', $site, x].join('')
+    puts url
+  }
+end
 
 concurrency.times do 
   threads << Thread.new {
@@ -81,7 +99,7 @@ concurrency.times do
 
     loop {
       begin
-        url = $queue.pop
+        type, url = $queue.pop
         break if url == "STOP"
       rescue
         puts "Queue failure, trying again, #{$!}"
@@ -89,89 +107,125 @@ concurrency.times do
       end
       
       filename = url.split('/').pop
-      
-      unless File.exists?("#{directory}/#{filename}")
-        loop {
-          begin
-            file = Mechanize.new.get(url)
-            file.save_as("#{directory}/#{filename}")
-            puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{site} #{filename}"
-            break
 
-          # This often arises from requesting too many things.
-          # If this is the case, let's try to just save the files again.
-          rescue Mechanize::ResponseCodeError => e
-            # Timeout error
-            if Net::HTTPResponse::CODE_TO_OBJ[e] == 403
-              puts "Bad File"
-              $badFile << url
+      if type == :image
+        unless File.exists?("#{directory}/#{filename}")
+          loop {
+            begin
+              file = Mechanize.new.get(url)
+              file.save_as("#{directory}/#{filename}")
+              puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{filename}"
               break
-            elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 408
-              # Take a break, man.
-              sleep 1
-              next
-            else
+
+            # This often arises from requesting too many things.
+            # If this is the case, let's try to just save the files again.
+            rescue Mechanize::ResponseCodeError => e
+              # Timeout error
+              if Net::HTTPResponse::CODE_TO_OBJ[e] == 403
+                puts "Bad File"
+                $badFile << url
+                break
+              elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 408
+                # Take a break, man.
+                sleep 1
+                next
+              else
+                break
+              end
+              
+            rescue
+              puts "Error getting file (#{url}), #{$!}"
               break
+
             end
-            
-          rescue
-            puts "Error getting file (#{url}), #{$!}"
-            break
+          }
+        end
+      elsif type == :page
+        unless File.exists?("#{graphs}/#{filename}")
+          loop {
+            begin
+              file = Mechanize.new.get(url)
+              file.save_as("#{graphs}/#{filename}")
+              graphGet(file.body)
+              break
 
-          end
-        }
+            # This often arises from requesting too many things.
+            # If this is the case, let's try to just save the files again.
+            rescue Mechanize::ResponseCodeError => e
+              # Timeout error
+              if Net::HTTPResponse::CODE_TO_OBJ[e] == 403
+                puts "Bad File"
+                $badFile << url
+                break
+              elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 408
+                # Take a break, man.
+                sleep 1
+                next
+              else
+                break
+              end
+              
+            rescue
+              puts "Error getting file (#{url}), #{$!}"
+              break
+
+            end
+          }
+        end
       end
     }
   }
 end
 
-loop do
-  page_url = "http://#{site}/api/read?type=photo&num=#{num}&start=#{start}"
+if $getPages
+  loop do
+    page_url = "http://#{$site}/api/read?type=photo&num=#{num}&start=#{start}"
 
-  page = ''
-  loop {
-    begin
-      page = Mechanize.new.get(page_url)
-      break
+    page = ''
+    loop {
+      begin
+        page = Mechanize.new.get(page_url)
+        break
 
-    rescue Mechanize::ResponseCodeError => e
-      if Net::HTTPResponse::CODE_TO_OBJ[e] == 404
-        puts "Fatal Error"
-        exit
+      rescue Mechanize::ResponseCodeError => e
+        if Net::HTTPResponse::CODE_TO_OBJ[e] == 404
+          puts "Fatal Error"
+          exit
+        end
+
+      rescue
+        puts "Error stream (#{page_url}), #{$!} - retrying"
+        sleep 1
+        next
       end
-
-    rescue
-      puts "Error stream (#{page_url}), #{$!} - retrying"
-      sleep 1
-      next
-    end
-  }
-
-  doc = Nokogiri::XML.parse(page.body)
-  md5 = Digest::MD5.hexdigest(doc.to_s)
-  logFile = [logs, md5].join('/')
-
-  unless File.exists?(logFile)
-    # Log the content that we are getting
-    File.open(logFile, 'w') { | f |
-      f.write(doc.to_s)
     }
 
-    images, added = parsefile doc
+    doc = Nokogiri::XML.parse(page.body)
+    md5 = Digest::MD5.hexdigest(doc.to_s)
+    logFile = [logs, md5].join('/')
 
-    puts "| #{page_url} +#{added.count}"
-    
-    if images.count < num
-      puts "All pages downloaded. Waiting for images"
-      break
+    unless File.exists?(logFile)
+      # Log the content that we are getting
+      File.open(logFile, 'w') { | f |
+        f.write(doc.to_s)
+      }
+
+      images, added = parsefile doc
+
+      puts "| #{page_url} +#{added.count}"
+      
+      if images.count < num
+        puts "All pages downloaded. Waiting for images"
+        break
+      end
     end
-  end
 
-  start += num
+    start += num
+  end
 end
 
 concurrency.times do 
-  $queue << "STOP"
+  $queue << [:control, "STOP"]
 end
 
 threads.each{|t| t.join }
