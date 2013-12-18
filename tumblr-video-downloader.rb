@@ -28,7 +28,7 @@ FileUtils.mkdir_p(logs)
 threads = []
 num = 50
 start = 0
-$allImages = []
+$allVideos = []
 
 def parsefile(doc)
   all = [] 
@@ -36,10 +36,10 @@ def parsefile(doc)
     list.each { | x |
       all << x
       $queue << x
-      $allImages << x
+      $allVideos << x
     }
   }
-  [all, all]
+  all
 end
 
 concurrency.times do 
@@ -68,37 +68,8 @@ concurrency.times do
       videoList.each { | url |
         filename = url.split('/').pop + ".mp4"
         
-        unless File.exists?("#{directory}/#{filename}")
-          loop {
-            begin
-              puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{site} #{filename}"
-              file = Mechanize.new.get(url)
-              file.save_as("#{directory}/#{filename}")
-              break
-
-            # This often arises from requesting too many things.
-            # If this is the case, let's try to just save the files again.
-            rescue Mechanize::ResponseCodeError => e
-              # Timeout error
-              if Net::HTTPResponse::CODE_TO_OBJ[e] == 403
-                puts "Bad File"
-                $badFile << url
-                break
-              elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 408
-                # Take a break, man.
-                sleep 1
-                next
-              else
-                break
-              end
-              
-            rescue
-              puts "Error getting file (#{url}), #{$!}"
-              break
-
-            end
-          }
-        end
+        puts "#{$allVideos.length - $queue.length}/#{$allVideos.length} #{site} #{filename}"
+        `wget --progress=dot -c -O #{directory}/#{filename} "#{url}"`
       }
     }
   }
@@ -126,9 +97,9 @@ loop do
     end
   }
 
-  videos, added = parsefile page.body
+  videos = parsefile page.body
 
-  puts "| #{page_url} +#{added.count}"
+  puts "| #{page_url} +#{videos.count}"
   
   if videos.count < num
     puts "All pages downloaded. Waiting for videos"
