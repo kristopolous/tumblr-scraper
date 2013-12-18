@@ -97,6 +97,16 @@ loop do
     end
   }
 
+  md5 = Digest::MD5.hexdigest(page.body)
+  logFile = [logs, md5].join('/')
+
+  unless File.exists?(logFile)
+    # Log the content that we are getting
+    File.open(logFile, 'w') { | f |
+      f.write(page.body)
+    }
+  end
+
   videos = parsefile page.body
 
   puts "| #{page_url} +#{videos.count}"
