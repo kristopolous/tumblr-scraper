@@ -25,7 +25,7 @@ concurrency = 2
 # Create the directory from the base directory AND the tumblr site
 directory = [directory, $site].join('/')
 
-# Create a log directory
+# Create a log and graph directory
 logs = [directory, 'logs'].join('/')
 graphs = [directory, 'graphs'].join('/')
 
@@ -142,6 +142,11 @@ concurrency.times do
                 break
               end
               
+            rescue Timeout::Error
+              # Take a break, man.
+              sleep 1
+              next
+
             rescue
               puts "Error getting file (#{url}), #{$!}"
               break
