@@ -1,37 +1,17 @@
-Tumblr Photo Downloader
-=======================
+So there's three tools here, that were based of an original Jamie Wilkinson implementation
 
-Ruby script to download all the photos from a Tumblr blog.
+ * tumblr-photo-downloader.rb downloads image
+   * post details
+   * the first 50 notes for each post
+   * the image itself
 
-Tumblr also has a GUI backup tool for Mac, [Tumblr Backup.app](http://staff.tumblr.com/post/286303145/tumblr-backup-mac-beta)
+ * tumblr-flash-downloader.rb is the same as the above but no images.
 
+ * tumblr-video-downloader.rb follows video posts through and finds their eventual mp4 or flv and then concatenates them into a vids log file in the format
 
-Usage
------
+   [blog] [url]
 
-Checkout the code:
-
-    git clone git://github.com/jamiew/tumblr-photo-downloader.git
-    cd tumblr-photo-downloader
-
-Install bundler:
-
-    gem install bundler
-    bundle install
-
-Run the script, specifying your blog URL as the argument:
-
-    ruby tumblr-photo-downloader.rb jamiew.tumblr.com
-
-By default, images will be saved in a sub-directory of the directory containing the script (eg tumblr-photo-downloader/jamiew.tumblr.com). If you want them to be saved to a different directory, you can pass its name as an optional second argument:
-
-    ruby tumblr-photo-downloader.rb jamiew.tumblr.com ~/pictures/jamiew-tumblr-images/
-
-If you have run the script previously, specifying the same Tumblr URL and destination directory, then it will stop after sequentially encountering links to 50 images that have been previously downloaded.
-
-Enjoy!
-
-
+If a blog goes offline, the resources remain up.  This means that you can do a (flash|videos)-downloader to get the links to the content and then use the photo downloader at a later date.
 
 License
 -------

@@ -68,8 +68,17 @@ concurrency.times do
       videoList.each { | url |
         filename = url.split('/').pop + ".mp4"
         
-        puts "#{$allVideos.length - $queue.length}/#{$allVideos.length} #{site} #{filename}"
-        `wget --progress=dot -c -O #{directory}/#{filename} "#{url}"`
+        unless File.exists?("#{directory}/#{filename}")
+          File.open('vids', 'a') { | f |
+            realurl=`curl -sI #{url} | grep ocation | awk ' { print $2 } '`
+            f.write("#{site} #{realurl.gsub(/#.*/, '')}")
+            print '.'
+            STDOUT.flush
+          }
+        end
+
+        #puts "#{$allVideos.length - $queue.length}/#{$allVideos.length} #{site} #{filename}"
+        #`wget --progress=dot -c -O #{directory}/#{filename} "#{url}"`
       }
     }
   }

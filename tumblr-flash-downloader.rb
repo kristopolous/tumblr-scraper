@@ -117,44 +117,7 @@ concurrency.times do
       
       filename = url.split('/').pop
 
-      if type == :image
-        unless File.exists?("#{directory}/#{filename}")
-          loop {
-            begin
-              file = Mechanize.new.get(url)
-              file.save_as("#{directory}/#{filename}")
-              puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{filename}"
-              break
-
-            # This often arises from requesting too many things.
-            # If this is the case, let's try to just save the files again.
-            rescue Mechanize::ResponseCodeError => e
-              # Timeout error
-              if Net::HTTPResponse::CODE_TO_OBJ[e] == 403
-                puts "Bad File"
-                $badFile << url
-                break
-              elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 408
-                # Take a break, man.
-                sleep 1
-                next
-              else
-                break
-              end
-              
-            rescue Timeout::Error
-              # Take a break, man.
-              sleep 1
-              next
-
-            rescue
-              puts "Error getting file (#{url}), #{$!}"
-              break
-
-            end
-          }
-        end
-      elsif type == :page
+      if type == :page
         unless File.exists?("#{graphs}/#{filename}")
           loop {
             begin
