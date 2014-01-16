@@ -119,6 +119,7 @@ concurrency.times do
 
       if type == :page
         unless File.exists?("#{graphs}/#{filename}")
+          puts "graph #{filename} #{$queue.size}"
           loop {
             begin
               file = Mechanize.new.get(url)
