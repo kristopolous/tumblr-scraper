@@ -33,12 +33,15 @@ FileUtils.mkdir_p(graphs)
 threads = []
 $allImages = []
 
-def download(url)
+def download(url, local = '')
+  return [false, 0] if local.length > 0 and File.exists?(local)
+
+  len = 57
   page = ''
   duration = Time.new - $start
   mb = $bytes / (1024.00 * 1024.00)
   speed = ($bytes / duration) / 1024
-  puts "%5d/%d %3.2fMB %.0f:%02d %4.2fKB/s %s" % [$allImages.length - $queue.length, $allImages.length, mb, (duration / 60), duration.to_i % 60, speed, url]
+  puts "%4d/%d %3.2fM %.0f:%02d %3.0fK %s %s" % [$allImages.length - $queue.length, $allImages.length, mb, (duration / 60), duration.to_i % 60, speed, url.slice(-[len, url.length].min, [len, url.length].min), local.slice(-len, len)]
   STDOUT.flush
 
   loop {
@@ -50,7 +53,6 @@ def download(url)
       if e.page.code == "403"
         return [false, 403]
       elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 404
-        puts "Fatal Error"
         $badFile << url
         return [false, 404]
       elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 408
@@ -74,7 +76,13 @@ def download(url)
     end
   }
 
-  $bytes += page.body.length
+  if page.body
+    $bytes += page.body.length
+    page.save_as(local) if local.length > 0
+  else
+    puts YAML::dump(page)
+    exit
+  end
  
   [true, page]
 end
@@ -148,10 +156,10 @@ Dir.glob("#{logs}/*") { | file |
 
 
 def graphGet(file)
-  file.match(/.GET...([^']*)/) { | x | 
-    url = ['http://', $site, x].join('')
-    puts url
+  file.scan(/'(\/notes\/[^\']*)',/) { | x | 
+    return  ['http://', $site, x].join('')
   }
+  return false
 end
 
 concurrency.times do 
@@ -193,19 +201,25 @@ concurrency.times do
           }
         end
       elsif type == :image
-        unless File.exists?("#{directory}/#{filename}")
-          success, file = download(url)
-          file.save_as("#{directory}/#{filename}") if success
-          # puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{filename}"
-        end
+        success, file = download(url, "#{directory}/#{filename}")
       elsif type == :page
         unless File.exists?("#{graphs}/#{filename}")
-          success, file = download(url)
-          if success
-            file.save_as("#{graphs}/#{filename}") 
-            graphGet(file.body)
-          end
-          # puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{url} (graph)"
+          page = 0
+          loop {
+            success, file = download(url)
+            if success
+              if page == 0
+                file.save_as("#{graphs}/#{filename}") 
+              else
+                file.save_as("#{graphs}/#{filename}.#{page}") 
+              end
+
+              url = graphGet(file.body)
+              page += 1
+            end
+            break if !url
+            break if !success
+          }
         end
       end
     }
