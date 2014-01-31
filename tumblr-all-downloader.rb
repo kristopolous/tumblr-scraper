@@ -32,13 +32,17 @@ $allImages = []
 
 def download(url)
   page = ''
+  puts "[ #{url} ]"
   loop {
     begin
       page = Mechanize.new.get(url)
       break
 
     rescue Mechanize::ResponseCodeError => e
-      if Net::HTTPResponse::CODE_TO_OBJ[e] == 404
+      if e.page.code == "403"
+        puts "Forbidden - this isn't good."
+        exit
+      elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 404
         puts "Fatal Error"
         $badFile << url
         exit
@@ -180,7 +184,7 @@ concurrency.times do
           file = download(url)
           file.save_as("#{graphs}/#{filename}")
           graphGet(file.body)
-          puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{filename} (graph)"
+          puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{url} (graph)"
         end
       end
     }
@@ -197,7 +201,10 @@ loop do
   md5 = Digest::MD5.hexdigest(doc.to_s)
   logFile = [logs, md5].join('/')
 
-  unless File.exists?(logFile)
+  if File.exists?(logFile)
+    puts "Guessing that we have everything else. Not downloading any more image pages."
+    break
+  else
     images, added = parsefile doc
 
     puts "| #{page_url} +#{added.count}"
