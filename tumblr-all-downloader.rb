@@ -1,13 +1,16 @@
 require 'rubygems'
 require 'bundler'
+require 'yaml'
 require 'digest/md5'
 Bundler.require
 
 $site = ARGV[0]
 $site = $site.split('/').pop
+$start = Time.new
 directory = ARGV[1] ? ARGV[1] : $site
 $queue = Queue.new
 $badFile = Queue.new
+$bytes = 0
 
 concurrency = 4
 
@@ -32,7 +35,12 @@ $allImages = []
 
 def download(url)
   page = ''
-  puts "[ #{url} ]"
+  duration = Time.new - $start
+  mb = $bytes / (1024.00 * 1024.00)
+  speed = ($bytes / duration) / 1024
+  puts "%5d/%d %3.2fMB %.0f:%02d %4.2fKB/s %s" % [$allImages.length - $queue.length, $allImages.length, mb, (duration / 60), duration.to_i % 60, speed, url]
+  STDOUT.flush
+
   loop {
     begin
       page = Mechanize.new.get(url)
@@ -40,12 +48,11 @@ def download(url)
 
     rescue Mechanize::ResponseCodeError => e
       if e.page.code == "403"
-        puts "Forbidden - this isn't good."
-        exit
+        return [false, 403]
       elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 404
         puts "Fatal Error"
         $badFile << url
-        exit
+        return [false, 404]
       elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 408
         # Take a break, man.
         sleep 1
@@ -66,17 +73,27 @@ def download(url)
       break
     end
   }
-  page
+
+  $bytes += page.body.length
+ 
+  [true, page]
 end
 
-def parsevideo(doc)
+def parsevideo(page)
   all = [] 
-  doc.scan(/url="([^"]*)"/) { | list | 
+  page.scan(/url="([^"]*)"/) { | list | 
     list.each { | x |
       all << x
       $queue << [:video, x]
     }
   }
+
+  doc = Nokogiri::XML.parse(page)
+  posts = (doc/'post').map {|x| x['url']}
+  posts.each do | url |
+    $queue << [:page, url]
+  end
+
   all
 end
 
@@ -154,37 +171,41 @@ concurrency.times do
 
       if type == :video
         videoList = []
-        page = download(url)
-        page.body.scan(/src=.x22([^\\]*)/) { | list |
-          list.each { | x |
-            videoList << x if x.match(/video_file/)
-          }
-        }
-
-        videoList.each { | url |
-          filename = url.split('/').pop + ".mp4"
-          
-          unless File.exists?("#{directory}/#{filename}")
-            File.open("#{directory}/vids", 'a') { | f |
-              realurl=`curl -sI #{url} | grep ocation | awk ' { print $2 } '`
-              f.write("#{realurl.gsub(/#.*/, '')}")
-              print '.'
-              STDOUT.flush
+        success, page = download(url)
+        if success
+          page.body.scan(/src=.x22([^\\]*)/) { | list |
+            list.each { | x |
+              videoList << x if x.match(/video_file/)
             }
-          end
-        }
+          }
+
+          videoList.each { | url |
+            filename = url.split('/').pop + ".mp4"
+            
+            unless File.exists?("#{directory}/#{filename}")
+              File.open("#{directory}/vids", 'a') { | f |
+                realurl=`curl -sI #{url} | grep ocation | awk ' { print $2 } '`
+                f.write("#{realurl.gsub(/#.*/, '')}")
+                print '.'
+                STDOUT.flush
+              }
+            end
+          }
+        end
       elsif type == :image
         unless File.exists?("#{directory}/#{filename}")
-          file = download(url)
-          file.save_as("#{directory}/#{filename}")
-          puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{filename}"
+          success, file = download(url)
+          file.save_as("#{directory}/#{filename}") if success
+          # puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{filename}"
         end
       elsif type == :page
         unless File.exists?("#{graphs}/#{filename}")
-          file = download(url)
-          file.save_as("#{graphs}/#{filename}")
-          graphGet(file.body)
-          puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{url} (graph)"
+          success, file = download(url)
+          if success
+            file.save_as("#{graphs}/#{filename}") 
+            graphGet(file.body)
+          end
+          # puts "#{$allImages.length - $queue.length}/#{$allImages.length} #{$site} #{url} (graph)"
         end
       end
     }
@@ -196,9 +217,15 @@ start = 0
 loop do
   page_url = "http://#{$site}/api/read?type=photo&num=#{num}&start=#{start}"
 
-  page = download(page_url)
+  success, page = download(page_url)
+
+  if !success
+    puts "Failed to get #{page_url}"
+    break
+  end
+
   doc = Nokogiri::XML.parse(page.body)
-  md5 = Digest::MD5.hexdigest(doc.to_s)
+  md5 = Digest::MD5.hexdigest(page.body)
   logFile = [logs, md5].join('/')
 
   if File.exists?(logFile)
@@ -207,7 +234,7 @@ loop do
   else
     images, added = parsefile doc
 
-    puts "| #{page_url} +#{added.count}"
+    #puts "| #{page_url} +#{added.count}"
 
     # If this file added nothing, then break here and don't save it.
     if added.count == 0
@@ -234,27 +261,29 @@ start = 0
 loop do
   page_url = "http://#{$site}/api/read?type=video&num=#{num}&start=#{start}"
 
-  page = download(page_url)
-  md5 = Digest::MD5.hexdigest(page.body)
-  logFile = [logs, md5].join('/')
+  success, page = download(page_url)
+  if success
+    md5 = Digest::MD5.hexdigest(page.body)
+    logFile = [logs, md5].join('/')
 
-  unless File.exists?(logFile)
-    # Log the content that we are getting
-    File.open(logFile, 'w') { | f |
-      f.write(page.body)
-    }
+    unless File.exists?(logFile)
+      # Log the content that we are getting
+      File.open(logFile, 'w') { | f |
+        f.write(page.body)
+      }
+    end
+
+    videos = parsevideo page.body
+
+    #puts "| #{page_url} +#{videos.count}"
+    
+    if videos.count < num
+      puts "All pages downloaded. Waiting for videos"
+      break
+    end
+
+    start += num
   end
-
-  videos = parsevideo page.body
-
-  puts "| #{page_url} +#{videos.count}"
-  
-  if videos.count < num
-    puts "All pages downloaded. Waiting for videos"
-    break
-  end
-
-  start += num
 end
 
 concurrency.times do 
