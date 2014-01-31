@@ -12,7 +12,7 @@ $queue = Queue.new
 $badFile = Queue.new
 $bytes = 0
 
-concurrency = 4
+concurrency = 6
 
 # Create the directory from the base directory AND the tumblr site
 directory = [directory, $site].join('/')
@@ -32,6 +32,7 @@ FileUtils.mkdir_p(graphs)
 
 threads = []
 $allImages = []
+$connection = Mechanize.new
 
 def download(url, local = '')
   return [false, 0] if local.length > 0 and File.exists?(local)
@@ -41,12 +42,12 @@ def download(url, local = '')
   duration = Time.new - $start
   mb = $bytes / (1024.00 * 1024.00)
   speed = ($bytes / duration) / 1024
-  puts "%4d/%d %3.2fM %.0f:%02d %3.0fK %s %s" % [$allImages.length - $queue.length, $allImages.length, mb, (duration / 60), duration.to_i % 60, speed, url.slice(-[len, url.length].min, [len, url.length].min), local.slice(-len, len)]
+  puts "%4d/%d %3.2fM %.0f:%02d %3.0fK %s %s" % [$allImages.length - $queue.length, $allImages.length, mb, (duration / 60), duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
   STDOUT.flush
 
   loop {
     begin
-      page = Mechanize.new.get(url)
+      page = $connection.get(url)
       break
 
     rescue Mechanize::ResponseCodeError => e
@@ -206,19 +207,16 @@ concurrency.times do
         unless File.exists?("#{graphs}/#{filename}")
           page = 0
           loop {
-            success, file = download(url)
-            if success
-              if page == 0
-                file.save_as("#{graphs}/#{filename}") 
-              else
-                file.save_as("#{graphs}/#{filename}.#{page}") 
-              end
+            fname = "#{graphs}/#{filename}"
+            fname += ".#{page}" if page > 0
+            
+            success, file = download(url, fname)
+            url = graphGet(file.body) if success
 
-              url = graphGet(file.body)
-              page += 1
-            end
-            break if !url
-            break if !success
+            ## Just get the recent history... no need to go crazy
+            break unless url and success and page < 12
+
+            page += 1
           }
         end
       end
