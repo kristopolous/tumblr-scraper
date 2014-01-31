@@ -37,12 +37,8 @@ $connection = Mechanize.new
 def download(url, local = '')
   return [false, 0] if local.length > 0 and File.exists?(local)
 
-  len = 57
+  len = 72
   page = ''
-  duration = Time.new - $start
-  mb = $bytes / (1024.00 * 1024.00)
-  speed = ($bytes / duration) / 1024
-  STDOUT.flush
 
   loop {
     begin
@@ -81,7 +77,12 @@ def download(url, local = '')
 
   if page.body
     $bytes += page.body.length
-    puts "%4d/%4d %4.2fM %.0f:%02d %3.0fK %s %s" % [$allImages.length - $queue.length, $allImages.length, mb, (duration / 60), duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
+    duration = Time.new - $start
+    mb = $bytes / (1024.00 * 1024.00)
+    speed = ($bytes / duration) / 1024
+    puts "%4d %4.2fM %.0f:%02d %3.0fK %s %s" % [$queue.length, mb, (duration / 60).floor, duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
+    STDOUT.flush
+
     page.save_as(local) if local.length > 0
   else
     puts YAML::dump(page)
@@ -245,33 +246,23 @@ loop do
   md5 = Digest::MD5.hexdigest(page.body)
   logFile = [logs, md5].join('/')
 
-  if File.exists?(logFile)
-    puts "Guessing that we have everything else. Not downloading any more image pages."
-    break
-  else
-    images, added = parsefile doc
+  break if File.exists?(logFile)
 
-    #puts "| #{page_url} +#{added.count}"
+  images, added = parsefile doc
 
-    # If this file added nothing, then break here and don't save it.
-    if added.count == 0
-      puts "Guessing that we have everything else. Not downloading any more image pages."
-      break
-    end
-    
-    # Log the content that we are getting
-    File.open(logFile, 'w') { | f |
-      f.write(doc.to_s)
-    }
+  # If this file added nothing, then break here and don't save it.
+  break if added.count == 0
+  
+  # Log the content that we are getting
+  File.open(logFile, 'w') { | f |
+    f.write(doc.to_s)
+  }
 
-    if images.count < num
-      puts "All image pages downloaded."
-      break
-    end
-  end
+  break if images.count < num
 
   start += num
 end
+puts "All image feeds downloaded."
 
 num = 50
 start = 0
@@ -295,7 +286,7 @@ loop do
     #puts "| #{page_url} +#{videos.count}"
     
     if videos.count < num
-      puts "All pages downloaded. Waiting for videos"
+      puts "All pages downloaded."
       break
     end
 
