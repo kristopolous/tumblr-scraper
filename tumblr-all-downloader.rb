@@ -8,16 +8,6 @@ $site = $site.split('/').pop
 directory = ARGV[1] ? ARGV[1] : $site
 $queue = Queue.new
 $badFile = Queue.new
-$useLogs = true
-
-if $site.nil? || $site.empty?
-  puts
-  puts "Usage: #{File.basename(__FILE__)} URL [directory to save in]"
-  puts "eg. #{File.basename(__FILE__)} jamiew.tumblr.com"
-  puts "eg. #{File.basename(__FILE__)} jamiew.tumblr.com ~/pictures/jamiew-tumblr-images/"
-  puts
-  exit 1
-end
 
 concurrency = 4
 
@@ -63,8 +53,12 @@ def download(url)
       sleep 1
       next
 
-    rescue
+    rescue Exception => ex
       puts "Error getting file (#{url}), #{$!}"
+      if ex.class == SocketError
+        puts "Maybe the site is gone?"
+        exit -1
+      end
       break
     end
   }
@@ -108,30 +102,28 @@ def parsefile(doc)
   [images, image_urls]
 end
 
-if $useLogs
-  Dir.glob("#{logs}/*") { | file |
+Dir.glob("#{logs}/*") { | file |
 
-    if file == "badurl"
+  if file == "badurl"
 
-      File.open(file, 'r') { | content |
-        # Start the list with the bad images
-        $allImages = content.split('\n')
-      }
+    File.open(file, 'r') { | content |
+      # Start the list with the bad images
+      $allImages = content.split('\n')
+    }
 
-    else
-      File.open(file, 'r') { | content |
-        images, count = parsefile Nokogiri::XML.parse(content)
+  else
+    File.open(file, 'r') { | content |
+      images, count = parsefile Nokogiri::XML.parse(content)
 
-        if count.length > 0
-          puts ">> #{file} +#{count.length}"
-        else
-          puts ">> #{file} +#{count.length} (ignored)"
-        end
-      }
+      if count.length > 0
+        puts ">> #{file} +#{count.length}"
+      else
+        puts ">> #{file} +#{count.length} (ignored)"
+      end
+    }
 
-    end
-  }
-end
+  end
+}
 
 
 def graphGet(file)
