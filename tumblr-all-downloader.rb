@@ -174,7 +174,7 @@ concurrency.times do
     loop {
       begin
         type, url = $queue.pop
-        # puts "#{Thread.current.object_id} [Queue] #{type} #{url}"
+        #puts "#{$queue.length} [Queue] #{type} #{url}"
         break if url == "STOP"
       rescue
         puts "Queue failure, trying again, #{$!}"
@@ -210,21 +210,19 @@ concurrency.times do
       elsif type == :image
         success, file = download(url, "#{directory}/#{filename}")
       elsif type == :page
-        unless File.exists?("#{graphs}/#{filename}")
-          page = 0
-          loop {
-            fname = "#{graphs}/#{filename}"
-            fname += ".#{page}" if page > 0
-            
-            success, file = download(url, fname)
-            url = graphGet(file.body) if success
+        page = 0
+        loop {
+          fname = "#{graphs}/#{filename}"
+          fname += ".#{page}" if page > 0
+          
+          success, file = download(url, fname)
+          url = graphGet(file.body) if success
 
-            ## Just get the recent history... no need to go crazy
-            break unless url and success and page < 12
+          ## Just get the recent history... no need to go crazy
+          break unless url and success and page < 10
 
-            page += 1
-          }
-        end
+          page += 1
+        }
       end
     }
   }
