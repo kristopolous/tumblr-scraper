@@ -9,6 +9,7 @@ $site = $site.split('/').pop
 $start = Time.new
 directory = ARGV[1] ? ARGV[1] : $site
 $queue = Queue.new
+$backlog = Queue.new
 $badFile = Queue.new
 $bytes = 0
 
@@ -80,7 +81,7 @@ def download(url, local = '')
     duration = Time.new - $start
     mb = $bytes / (1024.00 * 1024.00)
     speed = ($bytes / duration) / 1024
-    puts "%4d %4.2fM %.0f:%02d %3.0fK %s %s" % [$queue.length, mb, (duration / 60).floor, duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
+    puts "%4d %4.2fM %.0f:%02d %3.0fK %s %s" % [$queue.length + $backlog.length, mb, (duration / 60).floor, duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
     STDOUT.flush
 
     page.save_as(local) if local.length > 0
@@ -104,7 +105,7 @@ def parsevideo(page)
   doc = Nokogiri::XML.parse(page)
   posts = (doc/'post').map {|x| x['url']}
   posts.each do | url |
-    $queue << [:page, url]
+    $backlog << [:page, url]
   end
 
   all
@@ -127,7 +128,7 @@ def parsefile(doc)
   $allImages += posts
 
   posts.each do | url |
-    $queue << [:page, url]
+    $backlog << [:page, url]
   end
 
   image_urls.each do |url|
@@ -173,7 +174,12 @@ concurrency.times do
 
     loop {
       begin
-        type, url = $queue.pop
+        if $queue.empty?
+          type, url = $backlog.pop
+        else
+          type, url = $queue.pop
+        end
+
         #puts "#{$queue.length} [Queue] #{type} #{url}"
         break if url == "STOP"
       rescue
@@ -293,7 +299,7 @@ loop do
 end
 
 concurrency.times do 
-  $queue << [:control, "STOP"]
+  $backlog << [:control, "STOP"]
 end
 
 threads.each{|t| t.join }
