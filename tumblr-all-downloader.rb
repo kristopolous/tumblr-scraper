@@ -42,7 +42,6 @@ def download(url, local = '')
   duration = Time.new - $start
   mb = $bytes / (1024.00 * 1024.00)
   speed = ($bytes / duration) / 1024
-  puts "%4d/%d %3.2fM %.0f:%02d %3.0fK %s %s" % [$allImages.length - $queue.length, $allImages.length, mb, (duration / 60), duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
   STDOUT.flush
 
   loop {
@@ -53,22 +52,25 @@ def download(url, local = '')
     rescue Mechanize::ResponseCodeError => e
       if e.page.code == "403"
         return [false, 403]
-      elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 404
+
+      elsif e.response_code == "404"
         $badFile << url
         return [false, 404]
-      elsif Net::HTTPResponse::CODE_TO_OBJ[e] == 408
-        # Take a break, man.
+
+      elsif e.response_code == "408"
+        puts "Error (#{url}), #{$!} - waiting a second"
         sleep 1
         next
       end
 
+
     rescue Timeout::Error
-      puts "Error stream (#{page_url}), #{$!} - retrying"
+      puts "Error (#{url}), #{$!} - retrying"
       sleep 1
       next
 
     rescue Exception => ex
-      puts "Error getting file (#{url}), #{$!}"
+      puts "Error (#{url}), #{$!}"
       if ex.class == SocketError
         puts "Maybe the site is gone?"
         exit -1
@@ -79,6 +81,7 @@ def download(url, local = '')
 
   if page.body
     $bytes += page.body.length
+    puts "%4d/%4d %4.2fM %.0f:%02d %3.0fK %s %s" % [$allImages.length - $queue.length, $allImages.length, mb, (duration / 60), duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
     page.save_as(local) if local.length > 0
   else
     puts YAML::dump(page)
@@ -170,6 +173,7 @@ concurrency.times do
     loop {
       begin
         type, url = $queue.pop
+        # puts "#{Thread.current.object_id} [Queue] #{type} #{url}"
         break if url == "STOP"
       rescue
         puts "Queue failure, trying again, #{$!}"
@@ -180,6 +184,7 @@ concurrency.times do
 
       if type == :video
         videoList = []
+        count = 0
         success, page = download(url)
         if success
           page.body.scan(/src=.x22([^\\]*)/) { | list |
@@ -189,14 +194,14 @@ concurrency.times do
           }
 
           videoList.each { | url |
+            count += 1
             filename = url.split('/').pop + ".mp4"
             
             unless File.exists?("#{directory}/#{filename}")
               File.open("#{directory}/vids", 'a') { | f |
                 realurl=`curl -sI #{url} | grep ocation | awk ' { print $2 } '`
                 f.write("#{realurl.gsub(/#.*/, '')}")
-                print '.'
-                STDOUT.flush
+                puts "[Video] #{count} / #{videoList.length}"
               }
             end
           }
