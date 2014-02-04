@@ -11,6 +11,7 @@ directory = ARGV[1] ? ARGV[1] : $site
 $queue = Queue.new
 $backlog = Queue.new
 $badFile = Queue.new
+$maxgraph = 10
 $bytes = 0
 
 concurrency = 6
@@ -39,9 +40,12 @@ def download(url, local = '')
   return [false, 0] if local.length > 0 and File.exists?(local)
 
   len = 72
-  page = ''
+  page = false
+  tries = 6
 
   loop {
+    tries -= 1
+
     begin
       page = $connection.get(url)
       break
@@ -63,20 +67,32 @@ def download(url, local = '')
 
     rescue Timeout::Error
       puts "Error (#{url}), #{$!} - retrying"
-      sleep 1
-      next
+      if tries > 0
+        sleep 1
+        next
+      end
+
+      break
 
     rescue Exception => ex
       puts "Error (#{url}), #{$!}"
+
       if ex.class == SocketError
         puts "Maybe the site is gone?"
         exit -1
       end
+
+      if tries > 0
+        puts "Trying again (#{tries} left)"
+        sleep 1
+        next
+      end
+
       break
     end
   }
 
-  if page.body
+  if page and page.body
     $bytes += page.body.length
     duration = Time.new - $start
     mb = $bytes / (1024.00 * 1024.00)
@@ -149,12 +165,7 @@ Dir.glob("#{logs}/*") { | file |
   else
     File.open(file, 'r') { | content |
       images, count = parsefile Nokogiri::XML.parse(content)
-
-      if count.length > 0
-        puts ">> #{file} +#{count.length}"
-      else
-        puts ">> #{file} +#{count.length} (ignored)"
-      end
+      puts ">> #{file} +#{count.length}"
     }
 
   end
@@ -163,17 +174,21 @@ Dir.glob("#{logs}/*") { | file |
 
 def graphGet(file)
   file.scan(/'(\/notes\/[^\']*)',/) { | x | 
-    return  ['http://', $site, x].join('')
+    return ['http://', $site, x].join('')
   }
-  return false
+  false
 end
 
 concurrency.times do 
   threads << Thread.new {
+
+    # Make sure we know about failures.
     Thread.abort_on_exception = true
 
     loop {
       begin
+        # Only get the low-priority requests if the high
+        # priority ones are done
         if $queue.empty?
           type, url = $backlog.pop
         else
@@ -193,6 +208,7 @@ concurrency.times do
         videoList = []
         count = 0
         success, page = download(url)
+
         if success
           page.body.scan(/src=.x22([^\\]*)/) { | list |
             list.each { | x |
@@ -225,7 +241,7 @@ concurrency.times do
           url = graphGet(file.body) if success
 
           ## Just get the recent history... no need to go crazy
-          break unless url and success and page < 10
+          break unless url and success and page < $maxgraph
 
           page += 1
         }
@@ -302,7 +318,7 @@ concurrency.times do
   $backlog << [:control, "STOP"]
 end
 
-threads.each{|t| t.join }
+threads.each { |t| t.join }
 
 puts "Ok done. Adding 403s to blacklist"
 loop {
