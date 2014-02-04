@@ -243,8 +243,7 @@ concurrency.times do
       elsif type == :page
         page = 0
         loop {
-          fname = "#{graphs}/#{filename}"
-          fname += ".#{page}" if page > 0
+          fname = "#{graphs}/#{filename}.#{page}"
           
           success, file = download(url, fname)
           url = graphGet(file.body) if success
