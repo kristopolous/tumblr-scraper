@@ -14,7 +14,7 @@ $badFile = Queue.new
 $maxgraph = 10
 $bytes = 0
 
-concurrency = 6
+concurrency = 4
 
 # Create the directory from the base directory AND the tumblr site
 directory = [directory, $site].join('/')
@@ -60,13 +60,19 @@ def download(url, local = '')
 
       elsif e.response_code == "408"
         puts "Error (#{url}), #{$!} - waiting a second"
-        sleep 1
-        next
+
+        if tries > 0
+          sleep 1
+          next
+        end
+
+        break
       end
 
 
     rescue Timeout::Error
       puts "Error (#{url}), #{$!} - retrying"
+
       if tries > 0
         sleep 1
         next
@@ -150,6 +156,7 @@ def parsefile(doc)
   image_urls.each do |url|
     $queue << [:image, url]
   end
+
   [images, image_urls]
 end
 
@@ -229,8 +236,10 @@ concurrency.times do
             end
           }
         end
+
       elsif type == :image
         success, file = download(url, "#{directory}/#{filename}")
+
       elsif type == :page
         page = 0
         loop {
@@ -274,9 +283,7 @@ loop do
   break if added.count == 0
   
   # Log the content that we are getting
-  File.open(logFile, 'w') { | f |
-    f.write(doc.to_s)
-  }
+  File.open(logFile, 'w') { | f | f.write(doc.to_s) }
 
   break if images.count < num
 
@@ -296,23 +303,17 @@ loop do
 
     unless File.exists?(logFile)
       # Log the content that we are getting
-      File.open(logFile, 'w') { | f |
-        f.write(page.body)
-      }
+      File.open(logFile, 'w') { | f | f.write(page.body) }
     end
 
     videos = parsevideo page.body
-
-    #puts "| #{page_url} +#{videos.count}"
-    
-    if videos.count < num
-      puts "All pages downloaded."
-      break
-    end
-
     start += num
+    
+    break if videos.count < num
   end
 end
+
+puts "All feeds downloaded."
 
 concurrency.times do 
   $backlog << [:control, "STOP"]
@@ -321,11 +322,10 @@ end
 threads.each { |t| t.join }
 
 puts "Ok done. Adding 403s to blacklist"
-loop {
-  break if $badFile.empty?
-  url = $badFile.pop
 
-  File.open("#{logs}/badurl", "w+") do | f1 |
-    f1.write(url)
-  end
+File.open("#{logs}/badurl", "w+") { | f | 
+  loop {
+    break if $badFile.empty?
+    f.write( $badFile.pop )
+  }
 }
