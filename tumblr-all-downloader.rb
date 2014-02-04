@@ -103,7 +103,7 @@ def download(url, local = '')
     duration = Time.new - $start
     mb = $bytes / (1024.00 * 1024.00)
     speed = ($bytes / duration) / 1024
-    puts "%4d %4.2fM %.0f:%02d %3.0fK %s %s" % [$queue.length + $backlog.length, mb, (duration / 60).floor, duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
+    puts "%4d %4.2fM %.0f:%02d %3.0fK %s %s" % [$queue.length + $maxgraph * $backlog.length, mb, (duration / 60).floor, duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
     STDOUT.flush
 
     page.save_as(local) if local.length > 0
@@ -297,20 +297,23 @@ loop do
   page_url = "http://#{$site}/api/read?type=video&num=#{num}&start=#{start}"
 
   success, page = download(page_url)
-  if success
-    md5 = Digest::MD5.hexdigest(page.body)
-    logFile = [logs, md5].join('/')
 
-    unless File.exists?(logFile)
-      # Log the content that we are getting
-      File.open(logFile, 'w') { | f | f.write(page.body) }
-    end
-
-    videos = parsevideo page.body
-    start += num
-    
-    break if videos.count < num
+  if !success
+    puts "Failed to get #{page_url}"
+    break
   end
+
+  md5 = Digest::MD5.hexdigest(page.body)
+  logFile = [logs, md5].join('/')
+
+  break if File.exists?(logFile)
+
+  videos = parsevideo page.body
+  start += num
+
+  File.open(logFile, 'w') { | f | f.write(page.body) }
+  
+  break if videos.count < num
 end
 
 puts "All feeds downloaded."
