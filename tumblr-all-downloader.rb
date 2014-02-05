@@ -1,5 +1,7 @@
 require 'rubygems'
 require 'bundler'
+require 'uri'
+require 'thread'
 require 'yaml'
 require 'digest/md5'
 Bundler.require
@@ -35,60 +37,66 @@ FileUtils.mkdir_p(graphs)
 
 threads = []
 $allImages = []
-$connection = Mechanize.new
+$connection = Curl::Easy.new
 $filecount = 0
 
 def download(url, local = '', connection = $connection)
+
   return [false, 0] if local.length > 0 and File.exists?(local)
+=begin
+  uri = URI(url)
+  unless $connection.has_key? uri.host
+    $connection[uri.host] = Patron::Session.new
+    $connection[uri.host].base_url = "#{uri.scheme}://#{uri.host}"
+    $connection[uri.host].enable_debug "/tmp/patron.debug"
+  end
+
+  connection = $connection[uri.host]
+
+  path = uri.path
+  path += "?#{uri.query}" if uri.query
+=end
+  connection.url = url
 
   len = 72
   page = false
   tries = 6
 
-  loop {
-    tries -= 1
-
-    begin
-      page = connection.get(url)
-      break
-
-    rescue Mechanize::ResponseCodeError => e
-      if e.page.code == "403"
+      connection.on_failure { | x |
+        puts YAML::dump(x)
+=begin
+      if page.status == 403
         return [false, 403]
 
-      elsif e.response_code == "404"
+      elsif page.status == 404
         $badFile << url
         return [false, 404]
 
-      elsif e.response_code == "408"
+      elsif page.status == 408
         puts "Error (#{url}), #{$!} - waiting a second"
 
         if tries > 0
           sleep 1
           next
         end
-
-        break
       end
+=end
+  }
+  loop {
+    tries -= 1
 
-
-    rescue Timeout::Error
-      puts "Error (#{url}), #{$!} - retrying"
-
-      if tries > 0
-        sleep 1
-        next
-      end
-
+    begin
+      connection.perform
+      page = connection.body_str
       break
 
     rescue Exception => ex
       puts "Error (#{url}), #{$!}"
 
-      if ex.class == SocketError
-        puts "Maybe the site is gone?"
-        exit -1
-      end
+#      if ex.class == SocketError
+#        puts "Maybe the site is gone?"
+#        exit -1
+#      end
 
       if tries > 0
         puts "Trying again (#{tries} left)"
@@ -101,8 +109,8 @@ def download(url, local = '', connection = $connection)
   }
 
   $filecount += 1
-  if page and page.body
-    $bytes += page.body.length
+  if page
+    $bytes += page.length
     duration = Time.new - $start
     mb = $bytes / (1024.00 * 1024.00)
     speed = ($bytes / duration) / 1024
@@ -117,7 +125,7 @@ def download(url, local = '', connection = $connection)
       url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
     STDOUT.flush
 
-    page.save_as(local) if local.length > 0
+    File.open(local, 'w') { | f | f.write(page) } if local.length > 0
   else
     puts YAML::dump(page)
     exit
@@ -200,7 +208,7 @@ end
 concurrency.times do 
   threads << Thread.new {
 
-    connection = Mechanize.new
+    connection = Curl::Easy.new
 
     # Make sure we know about failures.
     Thread.abort_on_exception = true
@@ -230,7 +238,7 @@ concurrency.times do
         success, page = download(url, '', connection)
 
         if success
-          page.body.scan(/src=.x22([^\\]*)/) { | list |
+          page.scan(/src=.x22([^\\]*)/) { | list |
             list.each { | x |
               videoList << x if x.match(/video_file/)
             }
@@ -259,7 +267,7 @@ concurrency.times do
           fname = "#{graphs}/#{filename}.#{page}"
           
           success, file = download(url, fname, connection)
-          url = graphGet(file.body) if success
+          url = graphGet(file) if success
 
           ## Just get the recent history... no need to go crazy
           break unless url and success and page < $maxgraph
@@ -283,8 +291,8 @@ loop do
     break
   end
 
-  doc = Nokogiri::XML.parse(page.body)
-  md5 = Digest::MD5.hexdigest(page.body)
+  doc = Nokogiri::XML.parse(page)
+  md5 = Digest::MD5.hexdigest(page)
   logFile = [logs, md5].join('/')
 
   break if File.exists?(logFile)
@@ -315,15 +323,15 @@ loop do
     break
   end
 
-  md5 = Digest::MD5.hexdigest(page.body)
+  md5 = Digest::MD5.hexdigest(page)
   logFile = [logs, md5].join('/')
 
   break if File.exists?(logFile)
 
-  videos = parsevideo page.body
+  videos = parsevideo page
   start += num
 
-  File.open(logFile, 'w') { | f | f.write(page.body) }
+  File.open(logFile, 'w') { | f | f.write(page) }
   
   break if videos.count < num
 end
