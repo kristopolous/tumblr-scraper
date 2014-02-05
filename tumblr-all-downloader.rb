@@ -11,6 +11,7 @@ directory = ARGV[1] ? ARGV[1] : $site
 $queue = Queue.new
 $backlog = Queue.new
 $badFile = Queue.new
+$imageDownload = false
 $maxgraph = 10
 $bytes = 0
 
@@ -35,8 +36,9 @@ FileUtils.mkdir_p(graphs)
 threads = []
 $allImages = []
 $connection = Mechanize.new
+$filecount = 0
 
-def download(url, local = '')
+def download(url, local = '', connection = $connection)
   return [false, 0] if local.length > 0 and File.exists?(local)
 
   len = 72
@@ -47,7 +49,7 @@ def download(url, local = '')
     tries -= 1
 
     begin
-      page = $connection.get(url)
+      page = connection.get(url)
       break
 
     rescue Mechanize::ResponseCodeError => e
@@ -98,12 +100,21 @@ def download(url, local = '')
     end
   }
 
+  $filecount += 1
   if page and page.body
     $bytes += page.body.length
     duration = Time.new - $start
     mb = $bytes / (1024.00 * 1024.00)
     speed = ($bytes / duration) / 1024
-    puts "%4d %4.2fM %.0f:%02d %3.0fK %s %s" % [$queue.length + $maxgraph * $backlog.length, mb, (duration / 60).floor, duration.to_i % 60, speed, url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
+    files_per_minute = ($filecount.to_f / duration)
+    puts "%4d %4.2fM %.0f:%02d %3.0fK/%3.1fF %s %s" % [
+      $queue.length + $maxgraph * $backlog.length, 
+      mb, 
+      (duration / 60).floor, 
+      duration.to_i % 60, 
+      speed, 
+      files_per_minute,
+      url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
     STDOUT.flush
 
     page.save_as(local) if local.length > 0
@@ -189,6 +200,8 @@ end
 concurrency.times do 
   threads << Thread.new {
 
+    connection = Mechanize.new
+
     # Make sure we know about failures.
     Thread.abort_on_exception = true
 
@@ -214,7 +227,7 @@ concurrency.times do
       if type == :video
         videoList = []
         count = 0
-        success, page = download(url)
+        success, page = download(url, '', connection)
 
         if success
           page.body.scan(/src=.x22([^\\]*)/) { | list |
@@ -238,14 +251,14 @@ concurrency.times do
         end
 
       elsif type == :image
-        success, file = download(url, "#{directory}/#{filename}")
+        success, file = download(url, "#{directory}/#{filename}", connection) if $imageDownload
 
       elsif type == :page
         page = 0
         loop {
           fname = "#{graphs}/#{filename}.#{page}"
           
-          success, file = download(url, fname)
+          success, file = download(url, fname, connection)
           url = graphGet(file.body) if success
 
           ## Just get the recent history... no need to go crazy
