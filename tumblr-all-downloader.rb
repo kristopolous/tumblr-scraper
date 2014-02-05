@@ -17,7 +17,7 @@ $imageDownload = false
 $maxgraph = 10
 $bytes = 0
 
-concurrency = 4
+concurrency = 6
 
 # Create the directory from the base directory AND the tumblr site
 directory = [directory, $site].join('/')
@@ -37,7 +37,10 @@ FileUtils.mkdir_p(graphs)
 
 threads = []
 $allImages = []
-$connection = Curl::Easy.new
+$connection = Curl::Easy.new do | curl |
+ curl.headers["Connection"] = "keep-alive"
+ curl.encoding = ''
+end
 $filecount = 0
 
 def download(url, local = '', connection = $connection)
@@ -62,8 +65,8 @@ def download(url, local = '', connection = $connection)
   page = false
   tries = 6
 
-      connection.on_failure { | x |
-        puts YAML::dump(x)
+  connection.on_failure { | x |
+    puts YAML::dump(x)
 =begin
       if page.status == 403
         return [false, 403]
@@ -86,7 +89,7 @@ def download(url, local = '', connection = $connection)
     tries -= 1
 
     begin
-      connection.perform
+      connection.perform 
       page = connection.body_str
       break
 
@@ -208,7 +211,10 @@ end
 concurrency.times do 
   threads << Thread.new {
 
-    connection = Curl::Easy.new
+    connection = Curl::Easy.new do | curl |
+      curl.headers["Connection"] = "keep-alive"
+      curl.encoding = ''
+    end
 
     # Make sure we know about failures.
     Thread.abort_on_exception = true
