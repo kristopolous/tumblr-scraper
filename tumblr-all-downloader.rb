@@ -39,29 +39,19 @@ threads = []
 $allImages = []
 $connection = Curl::Easy.new do | curl |
  curl.headers["Connection"] = "keep-alive"
+ # Enable deflate and gzip
  curl.encoding = ''
 end
 $filecount = 0
 
+# The predictive key to get the notes (see below)
+$pkNote = false
+
 def download(url, local = '', connection = $connection)
 
   return [false, 0] if local.length > 0 and File.exists?(local)
-=begin
-  uri = URI(url)
-  unless $connection.has_key? uri.host
-    $connection[uri.host] = Patron::Session.new
-    $connection[uri.host].base_url = "#{uri.scheme}://#{uri.host}"
-    $connection[uri.host].enable_debug "/tmp/patron.debug"
-  end
-
-  connection = $connection[uri.host]
-
-  path = uri.path
-  path += "?#{uri.query}" if uri.query
-=end
   connection.url = url
 
-  len = 72
   page = false
   tries = 6
 
@@ -125,7 +115,7 @@ def download(url, local = '', connection = $connection)
       duration.to_i % 60, 
       speed, 
       files_per_minute,
-      url.slice(-[len, url.length].min, len), local.slice(-[len, local.length].min, len)]
+      url, local]
     STDOUT.flush
 
     File.open(local, 'w') { | f | f.write(page) } if local.length > 0
@@ -269,11 +259,25 @@ concurrency.times do
 
       elsif type == :page
         page = 0
+        if $pkNote
+          uri = URI(url)
+          url = "http://#{uri.host}/notes/#{filename}/#{$pkNote}?from_c=#{Time.now.to_i + 60 * 60 + 24}"
+        end
+
         loop {
           fname = "#{graphs}/#{filename}.#{page}"
           
           success, file = download(url, fname, connection)
           url = graphGet(file) if success
+
+          # tumblr notes use some kind of private key to avoid predictive grabbing.
+          # but it's identical for a blog. So once we see it, we can store it and then
+          # do predictive grabbing from here on out. 
+          if !$pkNote and url and page > 1
+            puts url
+            uri = URI(url)
+            $pkNote = uri.path.split('/').pop
+          end
 
           ## Just get the recent history... no need to go crazy
           break unless url and success and page < $maxgraph
