@@ -172,7 +172,21 @@ def parsefile(doc)
   [images, image_urls]
 end
 
-Dir.glob("#{logs}/*") { | file |
+logList = Dir.glob("#{logs}/*") 
+ix = 0
+last = 0
+logList.each { | file |
+
+  ix += 1
+  if ( ix * 100 / logList.length ) > (last + 5)
+    if [0, 50].include? last
+      print "#{last}%"
+    else
+      print "."
+    end
+    last += 5
+    STDOUT.flush
+  end
 
   if file == "badurl"
 
@@ -184,11 +198,11 @@ Dir.glob("#{logs}/*") { | file |
   else
     File.open(file, 'r') { | content |
       images, count = parsefile Nokogiri::XML.parse(content)
-      puts ">> #{file} +#{count.length}"
     }
 
   end
 }
+print "100% (#{$allImages.length} objects loaded)\n" if last > 0
 
 
 def graphGet(file)
