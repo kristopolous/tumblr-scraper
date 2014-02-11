@@ -41,6 +41,7 @@ $connection = Curl::Easy.new do | curl |
  curl.headers["Connection"] = "keep-alive"
  # Enable deflate and gzip
  curl.encoding = ''
+ curl.follow_location = true
 end
 $filecount = 0
 
@@ -49,7 +50,12 @@ $pkNote = false
 
 def download(url, local = '', connection = $connection)
 
-  return [false, 0] if local.length > 0 and File.exists?(local)
+  if local.length > 0 and File.exists?(local) and File.size(local) > 0
+    content = ''
+    File.open(local, 'r') { | f | content = f.read } 
+    return [false, content] 
+  end
+
   connection.url = url
 
   page = false
@@ -218,6 +224,7 @@ concurrency.times do
     connection = Curl::Easy.new do | curl |
       curl.headers["Connection"] = "keep-alive"
       curl.encoding = ''
+      curl.follow_location = true
     end
 
     # Make sure we know about failures.
@@ -245,28 +252,25 @@ concurrency.times do
       if type == :video
         videoList = []
         count = 0
-        success, page = download(url, '', connection)
+        success, page = download(url, "#{graphs}/#{filename}", connection)
 
-        if success
-          page.scan(/src=.x22([^\\]*)/) { | list |
-            list.each { | x |
-              videoList << x if x.match(/video_file/)
+        page.scan(/source src=.x22([^\\]*)/) { | list |
+          list.each { | x |
+            videoList << x if x.match(/video_file/)
+          }
+        }
+
+        videoList.each { | url |
+          count += 1
+          filename = url.split('/').pop + ".mp4"
+          
+          unless File.exists?("#{directory}/#{filename}")
+            File.open("#{directory}/vids", 'a') { | f |
+              realurl=`curl -sI #{url} | grep ocation | awk ' { print $2 } '`
+              f.write("#{realurl.gsub(/#.*/, '')}")
             }
-          }
-
-          videoList.each { | url |
-            count += 1
-            filename = url.split('/').pop + ".mp4"
-            
-            unless File.exists?("#{directory}/#{filename}")
-              File.open("#{directory}/vids", 'a') { | f |
-                realurl=`curl -sI #{url} | grep ocation | awk ' { print $2 } '`
-                f.write("#{realurl.gsub(/#.*/, '')}")
-                puts "[Video] #{count} / #{videoList.length}"
-              }
-            end
-          }
-        end
+          end
+        }
 
       elsif type == :image
         success, file = download(url, "#{directory}/#{filename}", connection) if $imageDownload
@@ -350,7 +354,7 @@ loop do
   md5 = Digest::MD5.hexdigest(page)
   logFile = [logs, md5].join('/')
 
-  break if File.exists?(logFile)
+  # break if File.exists?(logFile)
 
   videos = parsevideo page
   start += num
