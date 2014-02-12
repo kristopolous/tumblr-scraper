@@ -61,7 +61,8 @@ def download(url, local = '', connection = $connection)
   page = false
   tries = 6
 
-  connection.on_failure { | x |
+  connection.on_failure { | handle, x |
+    puts YAML::dump(handle)
     puts YAML::dump(x)
 =begin
       if page.status == 403
@@ -91,11 +92,6 @@ def download(url, local = '', connection = $connection)
 
     rescue Exception => ex
       puts "Error (#{url}), #{$!}"
-
-#      if ex.class == SocketError
-#        puts "Maybe the site is gone?"
-#        exit -1
-#      end
 
       if tries > 0
         puts "Trying again (#{tries} left)"
