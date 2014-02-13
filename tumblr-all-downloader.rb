@@ -62,8 +62,11 @@ def download(url, local = '', connection = $connection)
   tries = 6
 
   connection.on_failure { | handle, x |
-    puts YAML::dump(handle)
-    puts YAML::dump(x)
+    # Trying to discover the kinds of errors we get
+    File.open("#{directory}/errors", 'a') { | f |
+      f.write(YAML::dump(handle))
+      f.write(YAML::dump(x))
+    }
 =begin
       if page.status == 403
         return [false, 403]
@@ -291,6 +294,11 @@ concurrency.times do
             puts url
             uri = URI(url)
             $pkNote = uri.path.split('/').pop
+
+            # Trying to discover if the keys change
+            File.open("#{directory}/keys", 'a') { | f |
+              f.write("#{$pkNote}\n")
+            }
           end
 
           ## Just get the recent history... no need to go crazy
