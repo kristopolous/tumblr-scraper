@@ -53,7 +53,7 @@ def download(url, local = '', connection = $connection)
   if local.length > 0 and File.exists?(local) and File.size(local) > 0
     content = ''
     File.open(local, 'r') { | f | content = f.read } 
-    return [false, content] 
+    return [true, content] 
   end
 
   connection.url = url
@@ -285,7 +285,11 @@ concurrency.times do
           fname = "#{graphs}/#{filename}.#{page}"
           
           success, file = download(url, fname, connection)
-          url = graphGet(file) if success
+          if success
+            url = graphGet(file) 
+          else
+            puts "Error getting #{url}"
+          end
 
           # tumblr notes use some kind of private key to avoid predictive grabbing.
           # but it's identical for a blog. So once we see it, we can store it and then
