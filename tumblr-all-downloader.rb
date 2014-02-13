@@ -91,6 +91,7 @@ def download(url, local = '', connection = $connection)
     begin
       connection.perform 
       page = connection.body_str
+      return [false, 0] if connection.status.scan(/^404/).length > 0
       break
 
     rescue Exception => ex
