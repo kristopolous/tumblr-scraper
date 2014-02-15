@@ -213,7 +213,7 @@ print "100% (#{$allImages.length} objects loaded)\n" if last > 0
 # Feed in the key
 if File.exists?("#{directory}/keys")
   File.open("#{directory}/keys", 'r') { | f |
-    contents = f.read.split('\n')
+    contents = f.read.split("\n")
     $pkNote = contents.pop.strip
     print "Key = #{$pkNote} \n"
   }
@@ -371,7 +371,7 @@ loop do
   md5 = Digest::MD5.hexdigest(page)
   logFile = [logs, md5].join('/')
 
-  # break if File.exists?(logFile)
+  break if File.exists?(logFile)
 
   videos = parsevideo page
   start += num
