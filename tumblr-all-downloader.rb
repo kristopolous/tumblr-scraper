@@ -17,7 +17,7 @@ $imageDownload = true
 $maxgraph = 10
 $bytes = 0
 
-concurrency = 6
+concurrency = 15
 
 # Create the directory from the base directory AND the tumblr site
 directory = [directory, $site].join('/')
@@ -53,7 +53,7 @@ def download(url, local = '', connection = $connection)
   if local.length > 0 and File.exists?(local) and File.size(local) > 0
     content = ''
     File.open(local, 'r') { | f | content = f.read } 
-    return [true, content] 
+    return [true, content, true] 
   end
 
   connection.url = url
@@ -91,7 +91,7 @@ def download(url, local = '', connection = $connection)
     begin
       connection.perform 
       page = connection.body_str
-      return [false, 0] if connection.status.scan(/^404/).length > 0
+      return [false, 0, false] if connection.status.scan(/^404/).length > 0
       break
 
     rescue Exception => ex
@@ -130,7 +130,7 @@ def download(url, local = '', connection = $connection)
     exit
   end
  
-  [true, page]
+  [true, page, false]
 end
 
 def parsevideo(page)
@@ -260,7 +260,7 @@ concurrency.times do
       if type == :video
         videoList = []
         count = 0
-        success, page = download(url, "#{graphs}/#{filename}", connection)
+        success, page, local = download(url, "#{graphs}/#{filename}", connection)
 
         page.scan(/source src=.x22([^\\]*)/) { | list |
           list.each { | x |
@@ -281,7 +281,8 @@ concurrency.times do
         }
 
       elsif type == :image
-        success, file = download(url, "#{directory}/#{filename}", connection) if $imageDownload
+        next
+        success, file, local = download(url, "#{directory}/#{filename}", connection) if $imageDownload
 
       elsif type == :page
         page = 0
@@ -293,9 +294,22 @@ concurrency.times do
         loop {
           fname = "#{graphs}/#{filename}.#{page}"
           
-          success, file = download(url, fname, connection)
+          success, file, local = download(url, fname, connection)
           if success
-            url = graphGet(file) 
+# Pretend a full graph is already downloaded.
+# Two weeks pass by (with more notes and reblogs) and we visit this item again.
+# Now there are more pages. However, the end of the graph (with the old posts and 
+# reblogs which we already have) will be a higher number.  This means that what was
+# ending on page 4 the first time, may be ending on page 6.  If we get what is now page
+# 5 and 6 what we are really doing is getting what was page 3 and 4 the first time 
+# we went through.  This means that we will have the same data twice - the first time
+# labelled at page 3 and 4, from two weeks ago, and the second time, labelled as page 5
+# and 6 from today.  We will not in fact, get the new items in the graph at all.
+            if local
+              break
+            else
+              url = graphGet(file) 
+            end
           else
             puts "Error getting #{url}"
           end
@@ -329,7 +343,7 @@ start = 0
 loop do
   page_url = "http://#{$site}/api/read?type=photo&num=#{num}&start=#{start}"
 
-  success, page = download(page_url)
+  success, page, local = download(page_url)
 
   if !success
     puts "Failed to get #{page_url}"
@@ -361,7 +375,7 @@ start = 0
 loop do
   page_url = "http://#{$site}/api/read?type=video&num=#{num}&start=#{start}"
 
-  success, page = download(page_url)
+  success, page, local = download(page_url)
 
   if !success
     puts "Failed to get #{page_url}"
