@@ -5,7 +5,7 @@ tumblr-all-downloader is for scraping tumblr blogs to get images, notes, feeds, 
  * re-entrent
  * and gets the first 550 notes for each post
 
-There's a few optimizations dealing with unnecessary downloads.  It also tries to be far more robust in terms of failed urls, network outages, and other types of conditions.
+There's a few optimizations dealing with unnecessary downloads.  It tries to be robust in terms of failed urls, network outages, and other types of conditions. Scrapers should be solid and trustworthy.
 
 Usage is:
 
@@ -44,13 +44,15 @@ After it successfully writes, it will remove the source html data.  There's a fe
 
 In fact, as you run it you'll see output like this:
 
-    35:22 | 64:33 |  9280 | 1917.69 MB
-    (1)     (2)     (3)     (4)
+    40:19 | 63:33 | 7505 | 3209.33 MB
+    (1)     (2)     (3)    (4)
 
  1. The time the script has run
  2. The estimated total time until the script is finished
  3. The number of posts to still digest
- 4. The current total disk-space freed by the collapse (inode overhead not included) 
+ 4. The current total disk-space freed by the collapse (inode overhead not included)
+
+For busier blogs, seeing multiple gigabytes freed by the collapse is *common*.
 
 The way I'm using this script is as follows:
 
