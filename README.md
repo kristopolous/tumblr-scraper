@@ -15,8 +15,8 @@ Usage is:
 
 The status output of the script is as follows:
 
-    27820 265.99M 10:17 441K/18.5F http://some-blog.tumblr.com/some-endpoint /raid/tumblr/some-blog/some-file
-    (1)   (2)     (3)   (4)  (5)   (6)                                       (7)
+    2782 265.99M 10:17 441K/18.5F http://blog.com/foo /raid/blog.com/bar
+    (1)  (2)     (3)   (4)  (5)   (6)                 (7)
 
   1. Estimated number of items to download (presuming every post has a full set of notes)
   2. Amount of uncompressed data downloaded
