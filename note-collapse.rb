@@ -2,6 +2,8 @@ require 'rubygems'
 require 'bundler'
 Bundler.require
 
+$start = Time.new
+Dir.chdir(ARGV[0])
 startNodes = Dir["*.0"]
 
 def parsefile(doc)
@@ -20,14 +22,30 @@ def parsefile(doc)
   }
 end
 
+puts "#{startNodes.length} posts"
+puts "time | left  | remaining "
+count = 0
+
 startNodes.each { | x |
+  count += 1
+
+  if count % 10 == 0
+    duration = Time.new - $start
+    ttl = (duration / (count.to_f / startNodes.length.to_f)).to_i
+    togo = "%d:%02d" % [(ttl / 60).to_i, ttl % 60]
+    lapsed = "%d:%02d" % [(duration / 60).to_i, (duration % 60).to_i]
+
+    puts "#{lapsed} | #{togo} | #{startNodes.length - count}"
+  end
+
   post, id = x.split('.')
   output = "#{post}.json"
 
   like = []
   reblog = {}
+  todel = []
 
-  Dir["#{post}.*"].each { | page |
+  Dir["#{post}*"].each { | page |
     next if page == output
 
     File.open(page, 'r') { | content |
@@ -40,11 +58,14 @@ startNodes.each { | x |
       }
       like.concat(set[:like])
     } 
-    File.unlink(page)
+    todel << page
   }
 
   File.open(output, 'w') { | f |
     f << [reblog, like].to_json
   }
-    
+
+  ## Make sure that we don't remove the file until
+  # after our intended output has been written
+  todel.each { | file | File.unlink(file) }
 }

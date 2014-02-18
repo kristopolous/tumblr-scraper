@@ -2,6 +2,8 @@ GEM
   remote: https://rubygems.org/
   specs:
     curb (0.8.5)
+    inifile (2.0.2)
+    json (1.5.4)
     nokogiri (1.5.6)
 
 PLATFORMS
@@ -9,4 +11,6 @@ PLATFORMS
 
 DEPENDENCIES
   curb
+  inifile (~> 2.0.2)
+  json
   nokogiri (= 1.5.6)
