@@ -23,7 +23,7 @@ def parsefile(doc)
 end
 
 puts "#{startNodes.length} posts"
-puts "time | left  | remain | +space"
+puts " time | total | remain | +space"
 count = 0
 space_in = 0
 space_out = 0
@@ -31,11 +31,11 @@ space_out = 0
 startNodes.each { | x |
   count += 1
 
-  if count % 10 == 0
+  if count % 5 == 0
     duration = Time.new - $start
     ttl = (duration / (count.to_f / startNodes.length.to_f)).to_i
     togo = "%02d:%02d" % [(ttl / 60).to_i, ttl % 60]
-    lapsed = "%d:%02d" % [(duration / 60).to_i, (duration % 60).to_i]
+    lapsed = "%02d:%02d" % [(duration / 60).to_i, (duration % 60).to_i]
     saved = "%2.02f MB" % [(space_in - space_out).to_f / (1024 * 1024).to_f]
     remain = "%6d" % [startNodes.length - count]
 
