@@ -292,6 +292,9 @@ concurrency.times do
         end
 
         loop {
+          # Get out of here if the collapsed form has been processed
+          break if File.exists? "#{graphs}/#{filename}.json"
+
           fname = "#{graphs}/#{filename}.#{page}"
           
           success, file, local = download(url, fname, connection)
