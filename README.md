@@ -13,6 +13,20 @@ Usage is:
 
 `/raid/some-destination/some-user.tumblr.com` will be created and then it will try to download things into it as quickly as possible.
 
+The status output of the script is as follows:
+
+    27820 265.99M 10:17 441K/18.5F http://some-blog.tumblr.com/some-endpoint /raid/tumblr/some-blog/some-file
+    (1)   (2)     (3)   (4)  (5)   (6)                                       (7)
+
+  1. Estimated number of items to download (presuming every post has a full set of notes)
+  2. Amount of uncompressed data downloaded
+  3. Run-time of the scrape
+  4. Average uncompressed throughput
+  5. Average number of files downloaded per second
+  6. Current url being scraped
+  7. The file it's being written to
+
+
 ## note-collapse
 
 There's an **optional** tool called note-collapse.rb, which will take a graph directory generated from the downloader, parse all the notes, and then write the following to post-id.json:
