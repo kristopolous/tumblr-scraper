@@ -298,6 +298,21 @@ concurrency.times do
           fname = "#{graphs}/#{filename}.#{page}"
           
           success, file, local = download(url, fname, connection)
+
+          # tumblr notes use some kind of private key to avoid predictive grabbing.
+          # but it's identical for a blog. So once we see it, we can store it and then
+          # do predictive grabbing from here on out. 
+          if !$pkNote and url and page > 1
+            puts url
+            uri = URI(url)
+            $pkNote = uri.path.split('/').pop
+
+            # Trying to discover if the keys change
+            File.open("#{directory}/keys", 'a') { | f |
+              f.write("#{$pkNote}\n")
+            }
+          end
+
           if success
 # Pretend a full graph is already downloaded.
 # Two weeks pass by (with more notes and reblogs) and we visit this item again.
@@ -317,19 +332,6 @@ concurrency.times do
             puts "Error getting #{url}"
           end
 
-          # tumblr notes use some kind of private key to avoid predictive grabbing.
-          # but it's identical for a blog. So once we see it, we can store it and then
-          # do predictive grabbing from here on out. 
-          if !$pkNote and url and page > 1
-            puts url
-            uri = URI(url)
-            $pkNote = uri.path.split('/').pop
-
-            # Trying to discover if the keys change
-            File.open("#{directory}/keys", 'a') { | f |
-              f.write("#{$pkNote}\n")
-            }
-          end
 
           ## Just get the recent history... no need to go crazy
           break unless url and success and page < $maxgraph
