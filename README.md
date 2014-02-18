@@ -1,13 +1,21 @@
-So there's a tool here called tumblr-all-downloader  It's like the Jamie Wilkinson implementation but it's
+## tumblr-all-downloader
+
+tumblr-all-downloader is for scraping tumblr blogs to get images, notes, feeds, videos, and everything else. The script is
 
  * re-entrent
- * you get post details
- * you get the first 550 notes for each post
- * it downloads video urls
+ * and gets the first 550 notes for each post
 
-And there's a few optimizations dealing with unnecessary downloads.  It also tries to be far more robust in terms of failed urls, network outages, and other types of conditions.
+There's a few optimizations dealing with unnecessary downloads.  It also tries to be far more robust in terms of failed urls, network outages, and other types of conditions.
 
-There's also a tool called note-collapse.rb, which will take a graph directory generated from the downloader, parse all the notes, and then output the following:
+Usage is:
+
+    $ ruby tumblr-all-downloader.rb some-user.tumblr.com /raid/some-destination
+
+`/raid/some-destination/some-user.tumblr.com` will be created and then it will try to download things into it as quickly as possible.
+
+## note-collapse
+
+There's an **optional** tool called note-collapse.rb, which will take a graph directory generated from the downloader, parse all the notes, and then write the following to post-id.json:
 
     [/*reblog*/
       {
@@ -29,17 +37,15 @@ There's also a tool called note-collapse.rb, which will take a graph directory g
       ]
     ]
 
-in the post-id.json.  Then it will remove all the html data.  There's a few reasons for this:
+After it successfully writes, it will remove the source html data.  There's a few reasons for this:
 
  * The graph is easily ready for any type of further analysis
  * It is 1/11th the number of files and about 1/12th the file size.
 
 In fact, as you run it you'll see output like this:
 
-    26:29 | 66:12 |  12310 | 1404.07 MB
-
-    (1)    (2)      (3)     (4)
-
+    35:22 | 64:33 |  9280 | 1917.69 MB
+    (1)     (2)     (3)     (4)
 
  1. The time the script has run
  2. The estimated total time until the script is finished
@@ -57,6 +63,8 @@ It's not the fastest thing on the planet, but it does work.
 
 Authors
 -------
+
+The downloader is based on an earlier work by Jamie Wilkinson. 
 
 * [Jamie Wilkinson](http://jamiedubs.com) ([@jamiew](https://github.com/jamiew))
 * [James Scott-Brown](http://jamesscottbrown.com/) ([@jamesscottbrown](https://github.com/jamesscottbrown))
