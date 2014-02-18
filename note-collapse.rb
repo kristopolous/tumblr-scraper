@@ -18,7 +18,11 @@ def parsefile(doc)
         x.css('.action').map { | y | y.attr('data-post-url').split('/').pop }.first.to_i
       ]
     },
-    :like => doc.css('.like').map{ | x | x.css('a').last.inner_html }
+    :like => doc.css('.like').map{ | x | 
+      set = x.css('a')
+      return '' if set.last.nil?
+      set.last.inner_html
+    }
   }
 end
 
@@ -58,11 +62,13 @@ startNodes.each { | x |
       space_in += raw.length
       set = parsefile Nokogiri::HTML(raw, &:noblanks)
       set[:reblog].each { | row |
+        next if row.nil?
         from, who, post = row
         reblog[from] = [] unless reblog.has_key? from
         reblog[from] << [who, post]
-      }
-      like.concat(set[:like])
+      } unless set[:reblog].nil?
+
+      like.concat(set[:like]) unless set[:like].nil?
     } 
     todel << page
   }
