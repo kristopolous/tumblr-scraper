@@ -9,14 +9,19 @@ startNodes = Dir["*.0"]
 def parsefile(doc)
   {
     :reblog => doc.css('.reblog').map { | x |
-      [
-        #from
-        x.css('.source_tumblelog').map { | y | y.inner_html }.first,
-        #who
-        x.css('.tumblelog').map { | y | y.inner_html }.first,
-        #post
-        x.css('.action').map { | y | y.attr('data-post-url').split('/').pop }.first.to_i
-      ]
+      begin
+        [
+          #from
+          x.css('.source_tumblelog').map { | y | y.inner_html }.first,
+          #who
+          x.css('.tumblelog').map { | y | y.inner_html }.first,
+          #post
+          x.css('.action').map { | y | y.attr('data-post-url').split('/').pop }.first.to_i
+        ]
+      rescue
+        puts '.'
+        nil
+      end
     },
     :like => doc.css('.like').map{ | x | 
       set = x.css('a')
@@ -35,7 +40,9 @@ space_out = 0
 startNodes.each { | x |
   count += 1
 
+  sleep(0.3)
   if count % 5 == 0
+    sleep(0.3)
     duration = Time.new - $start
     ttl = (duration / (count.to_f / startNodes.length.to_f)).to_i
     togo = "%02d:%02d" % [(ttl / 60).to_i, ttl % 60]
