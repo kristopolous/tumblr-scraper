@@ -40,9 +40,8 @@ space_out = 0
 startNodes.each { | x |
   count += 1
 
-  sleep(0.3)
   if count % 5 == 0
-    sleep(0.3)
+    sleep(0.1)
     duration = Time.new - $start
     ttl = (duration / (count.to_f / startNodes.length.to_f)).to_i
     togo = "%02d:%02d" % [(ttl / 60).to_i, ttl % 60]

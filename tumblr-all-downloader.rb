@@ -14,7 +14,7 @@ $queue = Queue.new
 $backlog = Queue.new
 $badFile = Queue.new
 $imageDownload = true
-$maxgraph = 10
+$maxgraph = 20
 $bytes = 0
 
 concurrency = 15
@@ -194,6 +194,8 @@ logList.each { | file |
     STDOUT.flush
   end
 
+  next if file == 'posts.json'
+
   if file == "badurl"
 
     File.open(file, 'r') { | content |
@@ -247,9 +249,13 @@ concurrency.times do
         else
           type, url = $queue.pop
         end
+        ## ^^ There *may* be a race condition here that leads to a dead-lock
 
         #puts "#{$queue.length} [Queue] #{type} #{url}"
-        break if url == "STOP"
+        if type == :control
+          puts ">> Stopping :: #{url} <<\n"
+          break
+        end
       rescue
         puts "Queue failure, trying again, #{$!}"
         next
@@ -314,20 +320,7 @@ concurrency.times do
           end
 
           if success
-# Pretend a full graph is already downloaded.
-# Two weeks pass by (with more notes and reblogs) and we visit this item again.
-# Now there are more pages. However, the end of the graph (with the old posts and 
-# reblogs which we already have) will be a higher number.  This means that what was
-# ending on page 4 the first time, may be ending on page 6.  If we get what is now page
-# 5 and 6 what we are really doing is getting what was page 3 and 4 the first time 
-# we went through.  This means that we will have the same data twice - the first time
-# labelled at page 3 and 4, from two weeks ago, and the second time, labelled as page 5
-# and 6 from today.  We will not in fact, get the new items in the graph at all.
-            if local
-              break
-            else
-              url = graphGet(file) 
-            end
+            url = graphGet(file) 
           else
             puts "Error getting #{url}"
           end
@@ -351,8 +344,8 @@ loop do
   success, page, local = download(page_url)
 
   if !success
-    puts "Failed to get #{page_url}"
-    break
+    puts "Failed to get #{page_url} - site likely gone"
+    exit 
   end
 
   doc = Nokogiri::XML.parse(page)
@@ -402,8 +395,8 @@ end
 
 puts "All feeds downloaded."
 
-concurrency.times do 
-  $backlog << [:control, "STOP"]
+concurrency.times do | x | 
+  $backlog << [:control, x.to_s]
 end
 
 threads.each { |t| t.join }
