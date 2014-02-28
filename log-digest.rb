@@ -30,16 +30,20 @@ logList.each { | file |
 
   lastLog = File.stat(file).ctime if lastLog.nil?
   lastLog = [File.stat(file).ctime, lastLog].max
+  
+  unless lastCreated.nil?
+    break if lastLog > lastCreated 
+  end
 }
 
 if lastLog.nil?
-  puts "??? #{ARGV[0]}"
+  puts "  >>>  ??? #{ARGV[0]}"
   exit
 end
 
 total = logList.length
 
-if lastCreated.nil? or lastCreated < lastLog
+if lastCreated.nil? or lastLog > lastCreated
   hash = {}
   logList.each { | file |
       next if file == 'badurl' or file == 'posts.json'
