@@ -20,17 +20,41 @@ def parsefile(doc)
   ]
 end
 
-hash = {}
+lastLog = nil
+lastCreated = nil
 logList.each { | file |
-    next if file == 'badurl' or file == 'posts.json'
+  if file == 'posts.json'
+    lastCreated = File.stat(file).ctime 
+    next
+  end
 
-    File.open(file, 'r') { | content |
-      hash.merge! parsefile Nokogiri::XML.parse(content)
-    }
+  lastLog = File.stat(file).ctime if lastLog.nil?
+  lastLog = [File.stat(file).ctime, lastLog].max
 }
 
-File.open('posts.json', 'w') { | f |
-  f << hash.to_json
-}
+if lastLog.nil?
+  puts "??? #{ARGV[0]}"
+  exit
+end
 
-puts "#{Time.new - $start} #{ARGV[0]}"
+total = logList.length
+
+if lastCreated.nil? or lastCreated < lastLog
+  hash = {}
+  logList.each { | file |
+      next if file == 'badurl' or file == 'posts.json'
+
+      File.open(file, 'r') { | content |
+        hash.merge! parsefile Nokogiri::XML.parse(content)
+      }
+  }
+
+  File.open('posts.json', 'w') { | f |
+    f << hash.to_json
+  }
+  duration = Time.new - $start
+
+  puts "(#{(total / duration).to_i}) #{duration} #{ARGV[0]}" 
+else
+  puts "N/A #{ARGV[0]}"
+end
