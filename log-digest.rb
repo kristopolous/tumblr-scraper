@@ -2,6 +2,8 @@ require 'rubygems'
 require 'bundler'
 Bundler.require
 
+$start = Time.new
+
 Dir.chdir(ARGV[0])
 logList = Dir.glob("*") 
 
@@ -30,3 +32,5 @@ logList.each { | file |
 File.open('posts.json', 'w') { | f |
   f << hash.to_json
 }
+
+puts "#{Time.new - $start} #{ARGV[0]}"
