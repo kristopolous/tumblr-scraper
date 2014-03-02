@@ -11,13 +11,12 @@ $site = $site.split('/').pop
 $start = Time.new
 directory = ARGV[1] ? ARGV[1] : $site
 $queue = Queue.new
-$backlog = Queue.new
 $badFile = Queue.new
 $imageDownload = true
 $maxgraph = 20
 $bytes = 0
 
-concurrency = 15
+concurrency = 13
 
 # Create the directory from the base directory AND the tumblr site
 directory = [directory, $site].join('/')
@@ -115,7 +114,7 @@ def download(url, local = '', connection = $connection)
     speed = ($bytes / duration) / 1024
     files_per_minute = ($filecount.to_f / duration)
     puts "%4d %4.2fM %.0f:%02d %3.0fK/%3.1fF %s %s" % [
-      $queue.length + $maxgraph * $backlog.length, 
+      $queue.length * $maxgraph, 
       mb, 
       (duration / 60).floor, 
       duration.to_i % 60, 
@@ -124,7 +123,7 @@ def download(url, local = '', connection = $connection)
       url, local]
     STDOUT.flush
 
-    File.open(local, 'w') { | f | f.write(page) } if local.length > 0
+    File.open(local, 'w') { | f | f.write(page) } if local.length > 0 and page.length > 0
   else
     puts YAML::dump(page)
     exit
@@ -145,7 +144,7 @@ def parsevideo(page)
   doc = Nokogiri::XML.parse(page)
   posts = (doc/'post').map {|x| x['url']}
   posts.each do | url |
-    $backlog << [:page, url]
+    $queue << [:page, url]
   end
 
   all
@@ -168,7 +167,7 @@ def parsefile(doc)
   $allImages += posts
 
   posts.each do | url |
-    $backlog << [:page, url]
+    $queue << [:page, url]
   end
 
   image_urls.each do |url|
@@ -216,7 +215,7 @@ print "100% (#{$allImages.length} objects loaded)\n" if last > 0
 if File.exists?("#{directory}/keys")
   File.open("#{directory}/keys", 'r') { | f |
     contents = f.read.split("\n")
-    $pkNote = contents.pop.strip
+    $pkNote = contents.last.strip
     print "Key = #{$pkNote} \n"
   }
 end
@@ -244,11 +243,7 @@ concurrency.times do
       begin
         # Only get the low-priority requests if the high
         # priority ones are done
-        if $queue.empty?
-          type, url = $backlog.pop
-        else
-          type, url = $queue.pop
-        end
+        type, url = $queue.pop
         ## ^^ There *may* be a race condition here that leads to a dead-lock
 
         #puts "#{$queue.length} [Queue] #{type} #{url}"
@@ -304,6 +299,8 @@ concurrency.times do
           fname = "#{graphs}/#{filename}.#{page}"
           
           success, file, local = download(url, fname, connection)
+
+          $pkNote = false if file == 0 or file.length == 0
 
           # tumblr notes use some kind of private key to avoid predictive grabbing.
           # but it's identical for a blog. So once we see it, we can store it and then
@@ -395,8 +392,8 @@ end
 
 puts "All feeds downloaded."
 
-concurrency.times do | x | 
-  $backlog << [:control, x.to_s]
+(2 * concurrency).times do | x | 
+  $queue << [:control, x.to_s]
 end
 
 threads.each { |t| t.join }
