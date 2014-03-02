@@ -60,11 +60,20 @@ startNodes.each { | x |
   reblog = {}
   todel = []
 
-  Dir["#{post}*"].each { | page |
+  lastscrape = false
+  postlist = Dir["#{post}*"]
+  postlist.each { | page |
     next if page == output
 
     File.open(page, 'r') { | content |
       raw = content.read
+
+      if (postlist.length - 1) == page.split('.').last.to_i
+        raw.scan(/'(\/notes\/[^\']*)',/) { | x | 
+          lastscrape = x 
+        }
+      end
+
       space_in += raw.length
       set = parsefile Nokogiri::HTML(raw, &:noblanks)
       set[:reblog].each { | row |
@@ -81,7 +90,11 @@ startNodes.each { | x |
 
   # Only collapse if there is data
   if like.length > 0
-    payload = [reblog, like].to_json
+    payload = [reblog, like]
+    payload << lastscrape if lastscrape
+
+    payload = payload.to_json
+
     space_out += payload.length
     File.open(output, 'w') { | f |
       f << payload

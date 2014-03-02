@@ -66,23 +66,6 @@ def download(url, local = '', connection = $connection)
       f.write(YAML::dump(handle))
       f.write(YAML::dump(x))
     }
-=begin
-      if page.status == 403
-        return [false, 403]
-
-      elsif page.status == 404
-        $badFile << url
-        return [false, 404]
-
-      elsif page.status == 408
-        puts "Error (#{url}), #{$!} - waiting a second"
-
-        if tries > 0
-          sleep 1
-          next
-        end
-      end
-=end
   }
   loop {
     tries -= 1
