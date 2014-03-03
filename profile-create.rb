@@ -3,74 +3,78 @@ require 'set'
 require 'bundler'
 Bundler.require
 $r = Redis.new
+$size = $r.hlen('users').to_i
 
-$datadir = ARGV[0]
-$start = Time.new
+$trans = Redis.new
 
 def user(who)
   id = $r.hget('users', who)
 
   if id.nil?
-    id = [$r.hlen('users')].pack('l')
+    id = [$size].pack('l').rstrip
+    
     $r.hset('users', who, id)
+    $size += 1
+
+    # do a reverse lookup
+    $trans.hset('ruser', id, who)
   end
 
   id
 end
 
-def add_reblog(who, what)
-  $r.sadd(user(who), what)
-end
-
-def add_favorite(who, what)
-  $r.sadd(user(who), what)
+def digest(who, post)
+  "#{ [post.to_i].pack('q')[0..4] }#{ user( who ) }"
 end
 
 def shouldparse? path
-  puts path
   parts = path.split('/')
-  post = parts.last
-
-  site = (parts[-3]).split('.').first
-  userid = user(site)
 
   # Use 40 bits instead of 64
-  post = [post.split('.').first.to_i].pack('q').unpack('CCCCC').pack('CCCCC')
-
   # 32-bit user id + 40-bit post id = 9B
-  entry = [userid, post].join('')
+  entry = digest( parts[-3].split('.').first, parts.last.split('.').first )
 
   if $r.sismember('digest', entry) 
-    puts "Skip"
+    printf '.' if rand < 0.1
     return false 
-  end
+  end 
 
   entry
 end
 
 
+$start = false
+count = 0
+freq = 0
+
 # the log files are standard in.
 # the data dir is argv[0]
 $stdin.each_line do | file |
-  file.strip!
-  post = shouldparse? file
-  next unless post
+  entry = shouldparse? file.strip!
+  next unless entry
 
+  $start = Time.new unless $start
+  
+  $trans.multi if count % 30 == 0
   File.open(file, 'r') { | x | 
-    entries = JSON.parse(x.read)
+    reblog, likes = JSON.parse(x.read)
     
-    # reblogs
-    entries[0].values.each { | tuple |
-      tuple.each { | x |
-        add_reblog(x[0], post)
+    reblog.values.each { | tuple |
+      tuple.each { | who, post |
+        freq += 1
+        # Add this persons reblog to the digest so we don't double-parse it
+        $trans.sadd(user(who), entry) unless $r.sismember('digest', digest(who, post))
       }
     }
 
-    # favorites
-    entries[1].each { | who |
-      add_favorite who, post
-    }
+    #likes.each { | who |
+    #  $trans.sadd(user(who), entry)
+    #}
   }
+  count += 1
 
-  $r.sadd('digest', post)
+  $trans.sadd('digest', entry)
+  $trans.exec if (count % 30 == 0)
+
+  puts "#{file} #{count / (Time.new - $start)} #{ freq / count }"
 end
