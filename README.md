@@ -77,13 +77,16 @@ note-collapse will take a graph directory generated from the `scraper`, parse al
         user-who-favorited,
         user-who-favorited,
         user-who-favorited,
-      ]
+      ],
+      *last-id-scraped
     ]
 
 After it successfully writes the json, the script will remove the source html data to conserve inodes and disk space.  When the .ini support is added this will be configurable.
 
-
 However, all the useful data (for my purposes any way) is captured in the json files.
+
+If there were more pages to capture (As in the number of notes captured weren't all of them), then the URL of what would have been the next page to capture is placed as the 3rd
+item in the json.  If there is no 3rd item, it means that all the notes associated with the post at the time of the scrape are there.
 
 ### output
 
@@ -167,7 +170,12 @@ This means that if you have scraped say, 500 or 1000 blogs and run this over tha
 ### output
 
     /raid/t/blog.tumblr.com/graphs/123123231.json [number]
-    ^^ Last file digested                         ^^ cumulative rate of posts / second (higher is better)
+    (1)                                           (2)
+
+Where:
+
+ 1. Last file digested  
+ 2. Cumulative rate of posts / second (higher is better)
 
 ### suggested usage
 
