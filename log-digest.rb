@@ -12,9 +12,13 @@ def parsefile(doc)
     (doc/'post').map { | post |
       [
         post['url'].to_s.split('/').pop, 
-        (post/'photo-url').select { | x | 
-          x['max-width'].to_i == 1280 
-        }.map { | x | x.content.to_s  }
+        [
+          # thumbnail
+          (post/'photo-url').select { | x | x['max-width'].to_i == 100 }.map { | x | x.content.to_s  },
+
+          # large
+          (post/'photo-url').select { | x | x['max-width'].to_i == 1280 }.map { | x | x.content.to_s  }
+        ]
       ]
     }
   ]
