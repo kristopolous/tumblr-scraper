@@ -183,9 +183,9 @@ There are 3 human readable keys:
  * ruser - a hash of ids to usernames (reverse of users)
  * digest - a set of files previously parsed
 
-The digest is referred to to make sure the script is re-entrent
+The digest is referred to to make sure the script is re-entrent.  
 
-The other keys are between 1 and 4 bytes and represent the id of the username (according to `users` hash) in LSB binary. There is an assumption that the user corpus will stay under 2^32 for your analysis.
+The other keys are between 1 and 4 bytes and represent the id of the username (according to `users` hash) in LSB binary. There is an assumption that the user corpus will stay under 2^32 for your analysis.  Also, because user ids are 32 bit binaries, any key over 4 bytes long is safe to avoid collisions.
 
 Each user has a set of "posts" which are the following binary format 
 
@@ -196,15 +196,16 @@ The remainder of the post id (between 1 and 4 bytes) is the userid of the post.
 
 This means that in ruby you could do the following:
 
-    username = hget('rusers', postid[5..-1]) 
+    username = hget('ruser', postid[5..-1]) 
     postid = postid[0..4].unpack('Q')
 
-Then using this, if you ran `log-digest` AND have scraped the username's blog you could go to `username.tumblr.com/logs/post.json` and get the id `postid` and then reconstruct the actual post.
+Then using this, if you ran `log-digest` AND have scraped the username's blog you could go to `username.tumblr.com/logs/posts.json` and get the id `postid` and then reconstruct the actual post.
 
+> Note: Although a good deal of effort was put into compacting the information sent to redis, 
 Authors
 -------
 
-The downloader is based on an earlier work by Jamie Wilkinson. 
+The downloader is based on an earlier work by the following:
 
 * [Jamie Wilkinson](http://jamiedubs.com) ([@jamiew](https://github.com/jamiew))
 * [James Scott-Brown](http://jamesscottbrown.com/) ([@jamesscottbrown](https://github.com/jamesscottbrown))
