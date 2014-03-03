@@ -130,13 +130,13 @@ There are 3 human readable keys:
 
 The digest is referred to to make sure the script is re-entrent
 
-The other keys are between 1 and 4 bytes and represent the id of the username (according to users) in LSB binary. There is an assumption that the user corpus will stay under 2^32 for your analysis.
+The other keys are between 1 and 4 bytes and represent the id of the username (according to `users` hash) in LSB binary. There is an assumption that the user corpus will stay under 2^32 for your analysis.
 
 Each user has a set of "posts" which are the following binary format 
 
-    [ 40 byte post id ][ 1 - 4 byte user id ]
+    [ 5 byte post id ][ 1 - 4 byte user id ]
 
-The post id is taken by converting the postid to a 40 bit number and encoding it as LSB.  It will always be 40 bytes.
+The post id is taken by converting the postid to a 40 bit number and encoding it as LSB.  It will always be 40 bits (5 bytes).
 The remainder of the post id (between 1 and 4 bytes) is the userid of the post.
 
 This means that in ruby you could do the following:
