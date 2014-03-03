@@ -1,9 +1,9 @@
 ## tumblr-all-downloader
 
-tumblr-all-downloader is for scraping tumblr blogs to get images, notes, feeds, videos, and everything else. The script is
+tumblr-all-downloader is for scraping tumblr blogs to get posts, notes, feeds and videos. The script is
 
  * re-entrent
- * and gets the first 550 notes for each post
+ * and gets the first 1050 notes for each post (soon to be configurable)
 
 There's a few optimizations dealing with unnecessary downloads.  It tries to be robust in terms of failed urls, network outages, and other types of conditions. Scrapers should be solid and trustworthy.
 
@@ -26,6 +26,8 @@ The status output of the script is as follows:
   6. Current url being scraped
   7. The file it's being written to
 
+
+> Note: The system *does not* download images.  It downloads logs which can be digested to output the image urls. (look at log-digest)
 
 ## note-collapse
 
@@ -76,6 +78,73 @@ The way I'm using this script is as follows:
        | xargs -n 1 -P 2 ruby note-collapse.rb
 
 It's not the fastest thing on the planet, but it does work.
+
+## log-digest
+
+log-digest will take the md5-checksum named log files generated from the scraper and make a single posts.json file
+
+To use it you do
+
+    $ ruby log-digest.rb /raid/tumblr/site.tumblr.log/logs
+
+It will then see if the digest file is newer then any of the logs.  If it is, then you'll get an "N/A" which means no digest
+was created.  Otherwise, one will be made.
+
+The format is as follows:
+
+    { 
+        postid : [ image0, image1, ..., imageN ],
+        postid : [ image0, image1, ..., imageN ],
+    }
+
+## profile-create
+
+profile-create requires redis and note-collapse to be run over a blog. It will open the digests created by note-collapse and then
+create a reverse-mapping of them in redis.
+
+Say you have a post X with 20 reblogs R and 50 likes L.  A binary key representing each user who reblogged or liked the post will be
+created in redis which points back to a binary representation of X - each user becomes a redis set.
+
+This means that if you have scraped say, 500 or 1000 blogs and run this over that corpus, you can reconstruct a users' usage pattern; what they reblogged and liked.
+
+### usage
+
+You need to feed in the jsons generated from `note-collapse` into `stdin` like so:
+
+    $ find /raid/tumblr/ -name \*.json | grep graphs | ruby profile-create.rb
+
+### output
+
+    /raid/tumblr/blog.tumblr.com/graphs/1231231231231.json [number]
+    ^^ Last file digested                                  ^^ cumulative rate of posts / second (higher is better)
+
+### schema
+
+You **should not have existing data in the redis db prior to running this**.
+
+There are 3 human readable keys:
+
+ * users - a hash of usernames to ids
+ * ruser - a hash of ids to usernames (reverse of users)
+ * digest - a set of files previously parsed
+
+The digest is referred to to make sure the script is re-entrent
+
+The other keys are between 1 and 4 bytes and represent the id of the username (according to users) in LSB binary. There is an assumption that the user corpus will stay under @^32 for your analysis.
+
+Each user has a set of "posts" which are the following binary format 
+
+    [ 40 byte post id ][ 1 - 4 byte user id ]
+
+The post id is taken by converting the postid to a 40 bit number and encoding it as LSB.  It will always be 40 bytes.
+The remainder of the post id (between 1 and 4 bytes) is the userid of the post.
+
+This means that in ruby you could do the following:
+
+    username = hget('rusers', postid[5..-1]) 
+    postid = postid[0..4].unpack('Q')
+
+Then using this, if you ran log-digest AND have scraped the username's blog you could go to `username.tumblr.com/logs/post.json` and get the id `postid` and then reconstruct the actual post.
 
 Authors
 -------
