@@ -56,7 +56,7 @@ There's an **optional** tool called note-collapse.rb, which will take a graph di
 After it successfully writes, it will remove the source html data.  There's a few reasons for this:
 
  * The graph is easily ready for any type of further analysis
- * It is 1/11th the number of files and about 1/12th the file size.
+ * It is 1/{{ $number of note pages }}th the number of files and about the same fractional amount for the file size.
 
 In fact, as you run it you'll see output like this:
 
@@ -81,13 +81,13 @@ It's not the fastest thing on the planet, but it does work.
 
 ## log-digest
 
-log-digest will take the md5-checksum named log files generated from the scraper and make a single posts.json file
+log-digest will take the md5-checksum named logfiles generated from the scraper and make a single `posts.json` file with all the posts.
 
 To use it you do
 
-    $ ruby log-digest.rb /raid/tumblr/site.tumblr.log/logs
+    $ ruby log-digest.rb /raid/tumblr/site.tumblr.com/logs
 
-It will then see if the digest file is newer then any of the logs.  If it is, then you'll get an "N/A" which means no digest
+It will then see if the `posts.json` digest file is newer then any of the logs.  If it is, then you'll get an "N/A" which means no digest
 was created.  Otherwise, one will be made.
 
 The format is as follows:
@@ -99,8 +99,8 @@ The format is as follows:
 
 ## profile-create
 
-profile-create requires redis and note-collapse to be run over a blog. It will open the digests created by note-collapse and then
-create a reverse-mapping of them in redis.
+profile-create requires redis and `note-collapse` to be run over a scraped blog. It will open the note json digests created by `note-collapse` and then
+create a user-based reverse-mapping of the posts in redis.
 
 Say you have a post X with 20 reblogs R and 50 likes L.  A binary key representing each user who reblogged or liked the post will be
 created in redis which points back to a binary representation of X - each user becomes a redis set.
@@ -115,8 +115,8 @@ You need to feed in the jsons generated from `note-collapse` into `stdin` like s
 
 ### output
 
-    /raid/tumblr/blog.tumblr.com/graphs/1231231231231.json [number]
-    ^^ Last file digested                                  ^^ cumulative rate of posts / second (higher is better)
+    /raid/t/blog.tumblr.com/graphs/123123231.json [number]
+    ^^ Last file digested                         ^^ cumulative rate of posts / second (higher is better)
 
 ### schema
 
@@ -130,7 +130,7 @@ There are 3 human readable keys:
 
 The digest is referred to to make sure the script is re-entrent
 
-The other keys are between 1 and 4 bytes and represent the id of the username (according to users) in LSB binary. There is an assumption that the user corpus will stay under @^32 for your analysis.
+The other keys are between 1 and 4 bytes and represent the id of the username (according to users) in LSB binary. There is an assumption that the user corpus will stay under 2^32 for your analysis.
 
 Each user has a set of "posts" which are the following binary format 
 
@@ -144,7 +144,7 @@ This means that in ruby you could do the following:
     username = hget('rusers', postid[5..-1]) 
     postid = postid[0..4].unpack('Q')
 
-Then using this, if you ran log-digest AND have scraped the username's blog you could go to `username.tumblr.com/logs/post.json` and get the id `postid` and then reconstruct the actual post.
+Then using this, if you ran `log-digest` AND have scraped the username's blog you could go to `username.tumblr.com/logs/post.json` and get the id `postid` and then reconstruct the actual post.
 
 Authors
 -------
