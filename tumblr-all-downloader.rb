@@ -243,7 +243,6 @@ concurrency.times do
 
       if type == :video
         videoList = []
-        count = 0
         success, page, local = download(url, "#{graphs}/#{filename}", connection)
 
         page.scan(/source src=.x22([^\\]*)/) { | list |
@@ -253,15 +252,11 @@ concurrency.times do
         }
 
         videoList.each { | url |
-          count += 1
-          filename = url.split('/').pop + ".mp4"
           
-          unless File.exists?("#{directory}/#{filename}")
-            File.open("#{directory}/vids", 'a') { | f |
-              realurl=`curl -sI #{url} | grep ocation | awk ' { print $2 } '`
-              f.write("#{realurl.gsub(/#.*/, '')}")
-            }
-          end
+          File.open("#{directory}/vids", 'a') { | f |
+            realurl=`curl -sI #{url} | grep ocation | awk ' { print $2 } '`
+            f.write("#{realurl.gsub(/#.*/, '')}")
+          }
         }
 
       elsif type == :image
