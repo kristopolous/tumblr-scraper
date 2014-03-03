@@ -108,6 +108,8 @@ The way I'm using this script is as follows:
 
 It's not the fastest thing on the planet, but it does work.
 
+> Note: running `note-collapse` over a blog currently being scraped feels like a bad idea and is totally not supported.  `note-collapse` should be run carefully, on directories that aren't being processed by any other script here.
+
 ## log-digest
 
 log-digest will take the md5-checksum named logfiles generated from the `scraper` and make a single `posts.json` file with all the posts.
@@ -135,7 +137,7 @@ Where XXX is one of the following:
 
   * ( number ) ( duration ) - the number of files digested to create the `posts.json` file + the time it took.
   * N/A - the `posts.json` is newer than all of the logs so was not created
-  * "  >>> ???" No logs were found in this directory ... it's worth investigating.
+  * "  >>> ???" - No logs were found in this directory ... it's worth investigating.
 
 ### suggeted usage
 
