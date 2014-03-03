@@ -3,23 +3,32 @@ require 'set'
 require 'bundler'
 Bundler.require
 $r = Redis.new
-$size = $r.hlen('users').to_i
+$size = [$r.hlen('users').to_i, 1].max
 
 $trans = Redis.new
 
 def user(who)
   return $id if who == $last
-
   $id = $r.hget('users', who)
 
   if $id.nil?
-    id = [$size].pack('l').rstrip
-    
-    $r.hset('users', who, id)
-    $size += 1
+    $id = [$size].pack('l')
+    if $size < 16777216
 
-    # do a reverse lookup
-    $trans.hset('ruser', id, who)
+      if $size < 65536
+
+        $id = $id[0..1]
+
+      else
+        $id = $id[0..2]
+      end
+
+    end
+    
+    $r.hset('users', who, $id)
+    $trans.hset('ruser', $id, who)
+
+    $size += 1
   end
   $last = who
 
@@ -76,7 +85,7 @@ $stdin.each_line do | file |
   $trans.sadd('digest', entry)
   $trans.exec if (count % 40 == 0)
 
-  puts "#{file} #{count / (Time.new - $start)} #{ ttl }" if count % 10 == 0
+  puts "#{file} #{(ttl / (Time.new - $start)).to_i} #{ ttl }" if count % 12 == 0
 end
 
 # and one final exec
