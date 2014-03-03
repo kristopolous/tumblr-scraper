@@ -1,6 +1,6 @@
 ## tumblr-all-downloader
 
-tumblr-all-downloader is for scraping tumblr blogs to get posts, notes, feeds and videos. The script is
+tumblr-all-downloader (the `scraper`) is for scraping tumblr blogs to get posts, notes, feeds and videos. The script is
 
  * re-entrent
  * and gets the first 1050 notes for each post (soon to be configurable)
@@ -12,6 +12,8 @@ Usage is:
     $ ruby tumblr-all-downloader.rb some-user.tumblr.com /raid/some-destination
 
 `/raid/some-destination/some-user.tumblr.com` will be created and then it will try to download things into it as quickly as possible.
+
+### output 
 
 The status output of the script is as follows:
 
@@ -26,14 +28,39 @@ The status output of the script is as follows:
   6. Current url being scraped
   7. The file it's being written to
 
+When you are done you'll get the following:
+
+    /raid/blog.tumblr.com
+    \ _ graphs - a directory of the notes labelled postid.[0...N]
+     |_ keys - access keys in order to get the raw notes feed (as opposed to the entire page)
+     |_ logs - a directory of md5 checksummed files corresponding to the RSS feeds of image and video posts
+     |_ badurl - a list of 40x urls to not attempt again
+     |_ vids - a list of fully resolved video urls which can be used as follows:
+
+     $ cat vids | xargs -n 1 mplayer -prefer-ipv4 -nocache -- 
+
+     Or, I guess if you prefer,
+
+     $ cat vids | xargs wget
+
 
 > Note: The system *does not* download images.  It downloads logs which can be digested to output the image urls. (look at log-digest)
 
+### suggested usage
+
+Currently I manually curate the blogs to scrape.  I place them in a file I call sites and I run the following:
+
+    $ shuf sites | xargs -n 1 -I %% ruby tumblr-all-downloader.rb %% /raid/tumblr
+
+And then come back to it a few days later.
+
+> Note: Sometimes the script deadlocks (2014 - 03 - 02). I don't like this either and I'm trying to figure out what the issue is.
+
 ## note-collapse
 
-There's an **optional** tool called note-collapse.rb, which will take a graph directory generated from the downloader, parse all the notes, and then write the following to post-id.json:
+note-collapse will take a graph directory generated from the `scraper`, parse all the notes with nokogiri, and then write the following to `post-id.json` in the graphs directory:
 
-    [/*reblog*/
+    [
       {
         user-reblogged-from: [
           [ who-reblogged-it, post-id ],
@@ -53,12 +80,12 @@ There's an **optional** tool called note-collapse.rb, which will take a graph di
       ]
     ]
 
-After it successfully writes, it will remove the source html data.  There's a few reasons for this:
+After it successfully writes the json, the script will remove the source html data to conserve inodes and disk space.  When the .ini support is added this will be configurable.
 
- * The graph is easily ready for any type of further analysis
- * It is 1/{{ $number of note pages }}th the number of files and about the same fractional amount for the file size.
 
-In fact, as you run it you'll see output like this:
+However, all the useful data (for my purposes any way) is captured in the json files.
+
+### output
 
     40:19 | 63:33 | 7505 | 3209.33 MB
     (1)     (2)     (3)    (4)
@@ -69,6 +96,8 @@ In fact, as you run it you'll see output like this:
  4. The current total disk-space freed by the collapse (inode overhead not included)
 
 For busier blogs, seeing multiple gigabytes freed by the collapse is *common*.
+
+### suggested usage
 
 The way I'm using this script is as follows:
 
@@ -81,14 +110,13 @@ It's not the fastest thing on the planet, but it does work.
 
 ## log-digest
 
-log-digest will take the md5-checksum named logfiles generated from the scraper and make a single `posts.json` file with all the posts.
+log-digest will take the md5-checksum named logfiles generated from the `scraper` and make a single `posts.json` file with all the posts.
 
 To use it you do
 
     $ ruby log-digest.rb /raid/tumblr/site.tumblr.com/logs
 
-It will then see if the `posts.json` digest file is newer then any of the logs.  If it is, then you'll get an "N/A" which means no digest
-was created.  Otherwise, one will be made.
+It will then see if the `posts.json` digest file is newer then any of the logs. 
 
 The format is as follows:
 
@@ -96,6 +124,33 @@ The format is as follows:
         postid : [ image0, image1, ..., imageN ],
         postid : [ image0, image1, ..., imageN ],
     }
+
+### output
+
+There's three(3) types of output:
+
+    XXX /raid/blog/logs
+
+Where XXX is one of the following:
+
+  * ( number ) ( duration ) - the number of files digested to create the `posts.json` file + the time it took.
+  * N/A - the `posts.json` is newer than all of the logs so was not created
+  * "  >>> ???" No logs were found in this directory ... it's worth investigating.
+
+### suggeted usage
+
+Currently I do this:
+
+    $ find /raid/tumblr -name logs | xargs -n 1 ruby log-digest.rb
+
+It's 
+
+  * non-destructive, 
+  * can be run while the other scripts are running
+  * "relatively" swift
+  * doesn't duplicate effort
+
+So it's a fairly safe thing to run over the corpus at any time.
 
 ## profile-create
 
@@ -107,16 +162,16 @@ created in redis which points back to a binary representation of X - each user b
 
 This means that if you have scraped say, 500 or 1000 blogs and run this over that corpus, you can reconstruct a users' usage pattern; what they reblogged and liked.
 
-### usage
-
-You need to feed in the jsons generated from `note-collapse` into `stdin` like so:
-
-    $ find /raid/tumblr/ -name \*.json | grep graphs | ruby profile-create.rb
-
 ### output
 
     /raid/t/blog.tumblr.com/graphs/123123231.json [number]
     ^^ Last file digested                         ^^ cumulative rate of posts / second (higher is better)
+
+### suggested usage
+
+You need to feed in the jsons generated from `note-collapse` into `stdin` like so:
+
+    $ find /raid/tumblr/ -name \*.json | grep graphs | ruby profile-create.rb
 
 ### schema
 
