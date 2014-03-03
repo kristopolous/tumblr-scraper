@@ -6,83 +6,41 @@ $r = Redis.new
 
 $datadir = ARGV[0]
 $start = Time.new
-$digest = Set.new
-$sync_counter = 0
-$usermap = {}
 
+def user(who)
+  id = $r.hget('u', who)
 
-def check_sync(force = false)
-  $sync_counter += 1
-
-  if $sync_counter == 2000 or force
-    puts "<sync>"
-    save_digest
-=begin    
-    $usermap.each { | user, what | 
-      next if user.nil?
-      next if user.length == 0
-
-      userfile = "#{$datadir}/#{user}"
-
-      if File.exists? userfile
-        File.open(userfile, "r") { | x | 
-          userdata = JSON.parse(x.read)
-          userdata[0] = Set.new(userdata[0])
-          userdata[1] = Set.new(userdata[1])
-        }
-      end
-      
-      userdata = [
-        userdata[0].merge(Set.new(what[:reblog])).to_a,
-        userdata[1].merge(Set.new(what[:like])).to_a
-      ]
-
-      File.open(userfile, 'w') { | x | 
-        x << userdata.to_json
-      }
-
-      user_init(user, true)
-    }
-=end
-    $sync_counter = 0
+  if id.nil?
+    id = $r.hlen('u')
+    $r.hset('u', who, id)
   end
+
+  id
 end
 
 def add_reblog(who, what)
-  $r.sadd("u:#{who}", what)
-  #$usermap[who][:reblog] << what
-  check_sync
+  $r.sadd(user(who), what)
 end
 
 def add_favorite(who, what)
-  $r.sadd("u:#{who}", what)
-  #$usermap[who][:like] << what
-  check_sync
-end
-
-def load_digest
-  File.open("#{$datadir}/.digest", "r") { | x |
-    x.each_line do | line |
-      $digest << line.strip
-    end
-  }
-end
-
-def save_digest
-  File.open("#{$datadir}/.digest", "w") { | file |
-    file.write($digest.to_a.join("\n"))
-  }
+  $r.sadd(user(who), what)
 end
 
 def shouldparse? path
+  puts path
   parts = path.split('/')
   post = parts.last
+
   site = (parts[-3]).split('.').first
-  post = post.split('.').first
+  userid = [user(site).to_i].pack('l')
 
-  entry = [site, post].join('/')
+  # Use 48 bits instead of 64
+  post = [post.split('.').first.to_i].pack('q').unpack('SSS').pack('SSS')
 
-  if $digest.include? entry
+  # 32-bit user id + 48-bit post id = 10B
+  entry = [userid, post].join('')
+
+  if $r.sismember('digest', entry) 
     puts "Skip"
     return false 
   end
@@ -91,9 +49,6 @@ def shouldparse? path
 end
 
 
-s = Set.new
-
-load_digest
 # the log files are standard in.
 # the data dir is argv[0]
 $stdin.each_line do | file |
@@ -115,8 +70,7 @@ $stdin.each_line do | file |
       add_favorite who, post
     }
   }
-  puts post
 
-  $digest << post
+  $r.sadd('digest', post)
 end
 sleep(10000)
