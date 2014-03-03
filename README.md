@@ -201,7 +201,8 @@ This means that in ruby you could do the following:
 
 Then using this, if you ran `log-digest` AND have scraped the username's blog you could go to `username.tumblr.com/logs/posts.json` and get the id `postid` and then reconstruct the actual post.
 
-> Note: Although a good deal of effort was put into compacting the information sent to redis, 
+> Note: Although a good deal of effort was put into compacting the information sent to redis, multiple gigabytes of RAM (or redis-clustering) is highly recommended.
+
 Authors
 -------
 
