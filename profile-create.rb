@@ -8,11 +8,11 @@ $datadir = ARGV[0]
 $start = Time.new
 
 def user(who)
-  id = $r.hget('u', who)
+  id = $r.hget('users', who)
 
   if id.nil?
-    id = $r.hlen('u')
-    $r.hset('u', who, id)
+    id = [$r.hlen('users')].pack('l')
+    $r.hset('users', who, id)
   end
 
   id
@@ -32,12 +32,12 @@ def shouldparse? path
   post = parts.last
 
   site = (parts[-3]).split('.').first
-  userid = [user(site).to_i].pack('l')
+  userid = user(site)
 
-  # Use 48 bits instead of 64
-  post = [post.split('.').first.to_i].pack('q').unpack('SSS').pack('SSS')
+  # Use 40 bits instead of 64
+  post = [post.split('.').first.to_i].pack('q').unpack('CCCCC').pack('CCCCC')
 
-  # 32-bit user id + 48-bit post id = 10B
+  # 32-bit user id + 40-bit post id = 9B
   entry = [userid, post].join('')
 
   if $r.sismember('digest', entry) 
@@ -55,6 +55,7 @@ $stdin.each_line do | file |
   file.strip!
   post = shouldparse? file
   next unless post
+
   File.open(file, 'r') { | x | 
     entries = JSON.parse(x.read)
     
@@ -73,4 +74,3 @@ $stdin.each_line do | file |
 
   $r.sadd('digest', post)
 end
-sleep(10000)
