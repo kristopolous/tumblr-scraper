@@ -4,7 +4,22 @@ base = File.dirname(__FILE__)
 #use Rack::ShowExceptions
 #use Rack::ShowStatus
 
+map "/megaup" do
+  use Api
+  run Rack::Server.new
+end
+
+map "/megadown" do
+  use Api
+  run Rack::Server.new
+end
+
 map "/down" do
+  use Api
+  run Rack::Server.new
+end
+
+map "/hide" do
   use Api
   run Rack::Server.new
 end

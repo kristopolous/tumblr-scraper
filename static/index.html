@@ -1,23 +1,38 @@
 <!doctype html>
 <style>
-body>div{border-bottom:1px solid black}
+body{margin:0;padding:0}
+body>div{border-bottom:1px solid black;min-height:400px}
+img{cursor:pointer}
+span{display:block}
 div { display:inline-block}
-img { display:block;}
+.entry { text-align:center;background: #ddd;display:none;margin:1px}
+img:hover,a:hover { box-shadow: 0 0 0 3px black}
 a { text-align:center;
 cursor:pointer;
 padding:3px 0;
+margin:0 1px;
 display:inline-block;
-width:50px;
+width:40px;
 background:yellow}
+.h { background: none; width: auto }
+.m { font-size: 0.8em; width: 12px;background:red;color:white;} 
+#rand{width:auto}
+#big { position:fixed;top:0;left:0;z-index:1000;display:none}
 </style>
 <body>
+<img src="" id="big" onclick=gobig()>
 <script type='text/template' id='node'>
-<div>
-  <img onerror="hide(this)" src="<%= src %>">
-  <a onclick=down("<%= id %>")>down</a>
-  <a onclick=up("<%= id %>")>up</a>
+<div class='entry'>
+  <span>
+    <% for(var ix = 0; ix < src[0].length; ix++) { %>
+    <img _src="<%= src[1][ix] %>" onclick="gobig(this)" onload="show(this)" onerror="ihide(this)" src="<%= src[0][ix] %>">
+    <% }; %>
+  </span>
+
+  <a class='h' onclick="hide('<%= id %>',this)">H</a> | <a class='m' onclick=megadown("<%= id %>")>V</a><a onclick=down("<%= id %>")>down</a><a onclick=up("<%= id %>")>up</a><a class='m' onclick=megaup("<%= id %>")>M</a>
 </div>
 </script>
+<a id='rand' onclick="random()">[ more rand ]</a>
 <div id="crand"></div>
 <div id="csort"></div>
 </body>
@@ -25,9 +40,23 @@ background:yellow}
 <script src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
 <script>
 var node, count = 20;
+var flags = {random: false, rank: false};
 
-function hide(what) {
-  $(what.parentNode).remove();
+function gobig(url) {
+  if(url) {
+    $("#big").attr('src', url.getAttribute('_src')).show();
+  } else {
+    $("#big").hide();
+  }
+}
+
+function show(what) {
+  $(what.parentNode.parentNode).show();
+}
+
+function ihide(what) {
+  console.log('hide', what);
+  $(what.parentNode.parentNode).remove();
 }
 function genrand(payload) {
   gen(payload, '#crand');
@@ -48,16 +77,44 @@ function gen(payload, id) {
 }
 
 function random() {
-  $.getJSON('/random?' + count, genrand);
+  flags.random = false;
+  $.getJSON('/random?' + (count * 2), genrand);
 }
+
 function rank() {
-  $.getJSON('/relevant?' + (count * 8), genrank);
+  flags.rank = false;
+  rank.ix+= 20;
+  $.getJSON('/relevant?' + (count * 4) + "|" + rank.ix++, genrank);
 }
+rank.ix = 0;
 
 function all(){
-  random();rank();
+  flags.random = true;
+  flags.rank = true;
 }
 
+setInterval(function(){
+  if(flags.random) {
+    random();
+  }
+  if(flags.rank) {
+    rank();
+  }
+}, 22 * 1000);
+    
+
+function megadown(what) {
+  $.get("/megadown?" + what, all);
+}
+
+function hide(what,el) {
+  $.get("/hide?" + what);
+  $(el.parentNode).hide();
+}
+
+function megaup(what) {
+  $.get("/megaup?" + what, all);
+}
 function down(what) {
   $.get("/down?" + what, all);
 }
@@ -69,5 +126,7 @@ function up(what) {
 $(function(){
   node = _.template($("#node").html());
   random();
+  rank();
+  $(document.body).click(function(){big()});
 });
 </script>

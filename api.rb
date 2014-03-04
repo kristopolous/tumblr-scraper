@@ -15,14 +15,64 @@ def get_log what
   end
 end
 
+def user(who)
+  $id = $r.hget('users', who)
+
+  if $id.nil?
+    $id = [$size].pack('l')
+    if $size < 16777216
+
+      if $size < 65536
+
+        $id = $id[0..1]
+
+      else
+        $id = $id[0..2]
+      end
+
+    end
+    
+    $r.hset('users', who, $id)
+    $trans.hset('ruser', $id, who)
+
+    $size += 1
+  end
+
+  $id
+end
+def digest(who, post)
+  # Use 40 bits instead of 64
+  # 32-bit user id + 40-bit post id = 9B
+  "#{ [post.to_i].pack('q')[0..4] }#{ user( who ) }"
+end
+
+$depth = 27
 def vote(what, amount)
-  idList = $r.hmget('users', get_log(what)).shuffle[0..7]
+  ix = 0
+  who, postid = what.split('/')
+
+  if amount < 0
+    $r.zincrby('votes', amount, digest(who, postid)) 
+    $r.sadd('hidden', digest(who, postid))
+  end
+
+  users = get_log(what)
+  puts "#{what} #{users.length}"
+
+  return if users.length == 0
+  count = amount * Math.sqrt(Math.sqrt(Math.sqrt((1.000 / users.length))))
+ 
+  idList = $r.hmget('users', users.shuffle[0..$depth])
   idList.each { | who |
-    reblogs = $r.smembers(who).shuffle[0..7]
-    reblogs.each { | id |
-      $r.zincrby('votes', amount, id)
+    reblogs = $r.smembers(who)
+
+    incr = count * Math.sqrt(Math.sqrt(1.0000/reblogs.length))
+    reblogs.shuffle[0..$depth].each { | id |
+      ix += 1
+      $r.zincrby('votes', incr, id)
     }
   }
+  puts (ix.to_f / ($depth * $depth).to_f)
 end
 
 def to_image(what)
@@ -39,7 +89,7 @@ def get_content what
   if File.exists? postlog
     File.open(postlog, 'r') { | x |
       entries = JSON.parse(x.read)
-      return entries[postid][0].shuffle.first if entries.has_key? postid
+      return entries[postid] if entries.has_key? postid
     }
   end
 end
@@ -55,22 +105,52 @@ class Api
   def initialize(app, options={})
   end
 
+  def megaup(what)
+    vote(what, 5.0)
+  end
+
   def up(what)
-    vote(what, 1)
+    vote(what, 1.0)
+  end
+
+  def megadown(what)
+    vote(what, -10.0)
+  end
+
+  def hide(what)
+    who, postid = what.split('/')
+    $r.sadd('hidden', digest(who, postid))
   end
 
   def down(what)
-    vote(what, -1)
+    vote(what, -1.0)
   end
 
   def relevant(count)
-    $r.zrevrange('votes', 0, count).map { | x |
-      to_image(x)
+    count, start = count.split('|')
+    start = start.to_i
+    count = count.to_i
+    
+    puts "#{start} #{count}"
+
+    map = []
+    $r.zrevrange('votes', start, count).each { | x |
+      map << to_image(x) unless $r.sismember('hidden', x)
     }
+    last = count + start
+
+    if (map.length < count) 
+      $r.zrevrange('votes', last, count * 10).each { | x |
+         map << to_image(x) unless $r.sismember('hidden', x) or map.length > count
+      }
+    end
+    puts map.length
+    map[0..count]
   end
 
   def random(count)
     $r.srandmember('digest', count).map { | x | 
+      x = $r.srandmember('digest', 1).first while $r.sismember('hidden', x)
       to_image(x)
     }
   end
