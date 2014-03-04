@@ -4,8 +4,19 @@ GEM
     curb (0.8.5)
     inifile (2.0.2)
     json (1.5.4)
+    kgio (2.9.2)
     nokogiri (1.5.6)
+    rack (1.5.2)
+    rainbows (4.6.1)
+      kgio (~> 2.5)
+      rack (~> 1.1)
+      unicorn (~> 4.8)
+    raindrops (0.13.0)
     redis (3.0.7)
+    unicorn (4.8.2)
+      kgio (~> 2.6)
+      rack
+      raindrops (~> 0.7)
 
 PLATFORMS
   ruby
@@ -15,4 +26,6 @@ DEPENDENCIES
   inifile (~> 2.0.2)
   json
   nokogiri (= 1.5.6)
+  rack
+  rainbows
   redis

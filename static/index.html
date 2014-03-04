@@ -1,0 +1,73 @@
+<!doctype html>
+<style>
+body>div{border-bottom:1px solid black}
+div { display:inline-block}
+img { display:block;}
+a { text-align:center;
+cursor:pointer;
+padding:3px 0;
+display:inline-block;
+width:50px;
+background:yellow}
+</style>
+<body>
+<script type='text/template' id='node'>
+<div>
+  <img onerror="hide(this)" src="<%= src %>">
+  <a onclick=down("<%= id %>")>down</a>
+  <a onclick=up("<%= id %>")>up</a>
+</div>
+</script>
+<div id="crand"></div>
+<div id="csort"></div>
+</body>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
+<script>
+var node, count = 20;
+
+function hide(what) {
+  $(what.parentNode).remove();
+}
+function genrand(payload) {
+  gen(payload, '#crand');
+}
+function genrank(payload) {
+  gen(payload, '#csort');
+}
+function gen(payload, id) {
+  $(id).empty();
+  _.each(payload, function(what) {
+    $(id).append(
+      node({
+        id: what[0],
+        src: what[1]
+      })
+    );
+  });
+}
+
+function random() {
+  $.getJSON('/random?' + count, genrand);
+}
+function rank() {
+  $.getJSON('/relevant?' + (count * 8), genrank);
+}
+
+function all(){
+  random();rank();
+}
+
+function down(what) {
+  $.get("/down?" + what, all);
+}
+
+function up(what) {
+  $.get("/up?" + what, all);
+}
+
+$(function(){
+  node = _.template($("#node").html());
+  random();
+});
+</script>

@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+$stderr.puts Process.pid
+require 'rubygems'
+require 'bundler'
+
+version = ">= 0"
+
+gem 'rainbows', version
+load Gem.bin_path('rainbows', 'rainbows', version)
