@@ -1,4 +1,5 @@
 require 'rubygems'
+require 'timeout'
 require 'bundler'
 require 'uri'
 require 'thread'
@@ -27,7 +28,14 @@ graphs = [directory, 'graphs'].join('/')
 
 puts "Downloading photos from #{$site.inspect}, concurrency=#{concurrency} ..."
 
+=begin
 # Make the download directory
+if File.exists? directory
+  puts "skipping for now..."
+  exit 0
+end
+=end
+
 FileUtils.mkdir_p(directory)
 
 # Make the log directory
@@ -153,9 +161,9 @@ def parsefile(doc)
     $queue << [:page, url]
   end
 
-  image_urls.each do |url|
-    $queue << [:image, url]
-  end
+#  image_urls.each do |url|
+#    $queue << [:image, url]
+#  end
 
   [images, image_urls]
 end
@@ -224,24 +232,34 @@ concurrency.times do
 
     loop {
       begin
-        # Only get the low-priority requests if the high
-        # priority ones are done
-        type, url = $queue.pop
-        ## ^^ There *may* be a race condition here that leads to a dead-lock
+        ctype = false
+        url = false
+        Timeout::timeout(45) do
+          # Only get the low-priority requests if the high
+          # priority ones are done
+          ctype, url = $queue.pop
+          ## ^^ There *may* be a race condition here that leads to a dead-lock
+        end
 
         #puts "#{$queue.length} [Queue] #{type} #{url}"
-        if type == :control
-          puts ">> Stopping :: #{url} <<\n"
+        if ctype == :control
+          puts ">> Stopping #{url} <<\n"
           break
         end
+
+      rescue Timeout::Error => ex
+        puts ">> TIMEOUT Stopping <<\n"
+        break
+
       rescue
         puts "Queue failure, trying again, #{$!}"
         next
+
       end
-      
+
       filename = url.split('/').pop
 
-      if type == :video
+      if ctype == :video
         videoList = []
         success, page, local = download(url, "#{graphs}/#{filename}", connection)
 
@@ -259,11 +277,11 @@ concurrency.times do
           }
         }
 
-      elsif type == :image
+      elsif ctype == :image
         next
         success, file, local = download(url, "#{directory}/#{filename}", connection) if $imageDownload
 
-      elsif type == :page
+      elsif ctype == :page
         page = 0
         if $pkNote
           uri = URI(url)
