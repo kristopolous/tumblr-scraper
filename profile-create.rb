@@ -56,24 +56,32 @@ $start = false
 count = 0
 ttl = 0
 
-# the log files are standard in.
+# the graph jsons are standard in.
 # the data dir is argv[0]
 $stdin.each_line do | file |
   entry = shouldparse? file.strip!
   next unless entry
 
   $start = Time.new unless $start
-  
+
   $trans.multi if count % 40 == 0
   File.open(file, 'r') { | x | 
     reblog, likes = JSON.parse(x.read)
     
     reblog.values.each { | tuple |
+      shouldAdd = true
+      # If any of the reblogs have been seen in the digest, then don't do anything here.
       tuple.each { | who, post |
         ttl += 1
-        # Add this persons reblog unless we've parsed their reblog before
-        $trans.sadd(user(who), entry) unless $r.sismember('digest', digest(who, post))
+        shouldAdd = false if $r.sismember('digest', digest(who, post))
       }
+
+      if shouldAdd
+        tuple.each { | who, post |
+          # Add this persons reblog unless we've parsed their reblog before
+          $trans.sadd(user(who), entry)
+        }
+      end
     }
 
     #likes.each { | who |
