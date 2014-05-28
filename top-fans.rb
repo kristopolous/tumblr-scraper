@@ -11,24 +11,19 @@ $start = Time.new
 Dir.chdir(ARGV[0])
 fileList = Dir["*.json"]
 
-puts "#{fileList.length} posts"
-puts " time | total | remain"
+printf "#{fileList.length} posts"
 count = 0
 
 whoMap = {}
+likeMap = {}
+reblogMap = {}
 
 fileList.each { | file |
   count += 1
 
   if count % 200 == 0
-    duration = Time.new - $start
-    ttl = (duration / (count.to_f / fileList.length.to_f)).to_i
-    togo = "%02d:%02d" % [(ttl / 60).to_i, ttl % 60]
-    lapsed = "%02d:%02d" % [(duration / 60).to_i, (duration % 60).to_i]
-    remain = "%6d" % [fileList.length - count]
-
-    puts "#{lapsed} | #{togo} | #{remain}"
-    puts "-----\n#{ARGV[0]}" if count % 2000 == 0
+    printf "."
+    $stdout.flush
   end
 
   File.open(file, 'r') { | content |
@@ -36,23 +31,28 @@ fileList.each { | file |
 
     reblog.values.each { | tuple |
       tuple.each { | who, post |
-        whoMap[who] = 0 unless whoMap.has_key? who
-        whoMap[who] += 1
+        whoMap[who] = 1 + (whoMap[who] || 0)
+        reblogMap[who] = 1 + (reblogMap[who] || 0)
       }
     }
 
     likes.each { | who |
-      whoMap[who] = 0 unless whoMap.has_key? who
-      whoMap[who] += 1
+      whoMap[who] = 1 + (whoMap[who] || 0)
+      likeMap[who] = 1 + (likeMap[who] || 0)
     }
 
   } 
 
 }
-sorted = whoMap.sort_by { | who, count | count }.reverse
 
-sorted.each { | who, count |
-  if count > 10 
-    puts "#{count} #{who}"
-  end
+top = [whoMap, likeMap, reblogMap].map { | which |
+  which.sort_by { | who, count | count }.reverse[0..25]
+}.transpose
+
+printf "\n %-31s %-30s %s\n", "total", "likes", "reblogs"
+top.each { | row |
+  row.each { | who, count |
+    printf "%5d %-25s", count, who
+  }
+  printf "\n"
 }
