@@ -27,6 +27,21 @@ def parsefile(doc)
       set = x.css('a')
       return '' if set.last.nil?
       set.last.inner_html
+    },
+    :original => doc.css('.original_post').map { | x |
+      begin
+        [
+          #from
+          x.css('.source_tumblelog').map { | y | y.inner_html }.first,
+          #who
+          x.css('.tumblelog').map { | y | y.inner_html }.first,
+          #post
+          x.css('.action').map { | y | y.attr('data-post-url').split('/').pop }.first.to_i
+        ]
+      rescue
+        puts '.'
+        nil
+      end
     }
   }
 end
@@ -58,6 +73,7 @@ startNodes.each { | x |
 
   like = []
   reblog = {}
+  original = false
   todel = []
 
   lastscrape = false
@@ -76,6 +92,11 @@ startNodes.each { | x |
 
       space_in += raw.length
       set = parsefile Nokogiri::HTML(raw, &:noblanks)
+
+# The "original" is the earliest reference point.
+      original = set[:original] 
+      original = set[:reblog].last if original.length == 0
+
       set[:reblog].each { | row |
         next if row.nil?
         from, who, post = row
@@ -90,7 +111,7 @@ startNodes.each { | x |
 
   # Only collapse if there is data
   if like.length > 0
-    payload = [reblog, like]
+    payload = [reblog, like, original]
     payload << lastscrape if lastscrape
 
     payload = payload.to_json
