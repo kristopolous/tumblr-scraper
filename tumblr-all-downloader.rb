@@ -14,7 +14,7 @@ directory = ARGV[1] ? ARGV[1] : $site
 $queue = Queue.new
 $badFile = Queue.new
 $imageDownload = true
-$maxgraph = 20
+$maxgraph = 50
 $bytes = 0
 
 concurrency = 13
@@ -28,8 +28,8 @@ graphs = [directory, 'graphs'].join('/')
 
 puts "Downloading photos from #{$site.inspect}, concurrency=#{concurrency} ..."
 
-=begin
 # Make the download directory
+=begin
 if File.exists? directory
   puts "skipping for now..."
   exit 0
@@ -218,8 +218,10 @@ def graphGet(file)
   false
 end
 
-concurrency.times do 
+concurrency.times do | x | 
   threads << Thread.new {
+
+    whoami = x
 
     connection = Curl::Easy.new do | curl |
       curl.headers["Connection"] = "keep-alive"
@@ -248,7 +250,7 @@ concurrency.times do
         end
 
       rescue Timeout::Error => ex
-        puts ">> TIMEOUT Stopping <<\n"
+        puts ">> TIMEOUT Stopping #{whoami} <<\n"
         break
 
       rescue
