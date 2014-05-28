@@ -14,7 +14,7 @@ directory = ARGV[1] ? ARGV[1] : $site
 $queue = Queue.new
 $badFile = Queue.new
 $imageDownload = true
-$maxgraph = 50
+$maxgraph = 130
 $bytes = 0
 
 concurrency = 13
