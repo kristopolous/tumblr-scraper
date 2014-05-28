@@ -27,17 +27,22 @@ fileList.each { | file |
   end
 
   File.open(file, 'r') { | content |
-    JSON.parse(content.read)[0..20].each { | entry |
-      if entry.is_a?(String)
-        who = entry
-        likeMap[who] = 1 + (likeMap[who] || 0)
-      else
-        source, who, post = entry
+    reblog, likes = JSON.parse(content.read)
+
+    reblog.values.each { | tuple |
+      tuple.each { | who, post |
+        whoMap[who] = 1 + (whoMap[who] || 0)
         reblogMap[who] = 1 + (reblogMap[who] || 0)
-      end
-      whoMap[who] = 1 + (whoMap[who] || 0)
+      }
     }
+
+    likes.each { | who |
+      whoMap[who] = 1 + (whoMap[who] || 0)
+      likeMap[who] = 1 + (likeMap[who] || 0)
+    }
+
   } 
+
 }
 
 top = [whoMap, likeMap, reblogMap].map { | which |
