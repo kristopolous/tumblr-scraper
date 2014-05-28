@@ -6,44 +6,32 @@ $start = Time.new
 Dir.chdir(ARGV[0])
 startNodes = Dir["*.0"]
 
+def parseReblog(x) 
+  begin
+    [
+      #from
+      x.css('.source_tumblelog').map { | y | y.inner_html }.first,
+      #who
+      x.css('.tumblelog').map { | y | y.inner_html }.first,
+      #post
+      x.css('.action').map { | y | y.attr('data-post-url').split('/').pop }.first.to_i,
+    ]
+  rescue
+    puts '.'
+    nil
+  end
+end
+
 def parsefile(doc)
-  {
-    :reblog => doc.css('.reblog').map { | x |
-      begin
-        [
-          #from
-          x.css('.source_tumblelog').map { | y | y.inner_html }.first,
-          #who
-          x.css('.tumblelog').map { | y | y.inner_html }.first,
-          #post
-          x.css('.action').map { | y | y.attr('data-post-url').split('/').pop }.first.to_i
-        ]
-      rescue
-        puts '.'
-        nil
-      end
-    },
-    :like => doc.css('.like').map{ | x | 
+  doc.css('.note').map { | x |
+    classList = x['class'].split(' ')
+    if classList.include? "like"
       set = x.css('a')
-      return '' if set.last.nil?
-      set.last.inner_html
-    },
-    :original => doc.css('.original_post').map { | x |
-      begin
-        [
-          #from
-          x.css('.source_tumblelog').map { | y | y.inner_html }.first,
-          #who
-          x.css('.tumblelog').map { | y | y.inner_html }.first,
-          #post
-          x.css('.action').map { | y | y.attr('data-post-url').split('/').pop }.first.to_i
-        ]
-      rescue
-        puts '.'
-        nil
-      end
-    }
-  }
+      set.last.inner_html unless set.last.nil?
+    elsif classList.include? "reblog"
+      parseReblog(x)
+    end
+  }.compact
 end
 
 puts "#{startNodes.length} posts"
@@ -71,8 +59,7 @@ startNodes.each { | x |
   post, id = x.split('.')
   output = "#{post}.json"
 
-  like = []
-  reblog = {}
+  history = []
   original = false
   todel = []
 
@@ -91,27 +78,16 @@ startNodes.each { | x |
       end
 
       space_in += raw.length
-      set = parsefile Nokogiri::HTML(raw, &:noblanks)
+      history.concat( parsefile(Nokogiri::HTML(raw, &:noblanks)) )
 
 # The "original" is the earliest reference point.
-      original = set[:original] 
-      original = set[:reblog].last if original.length == 0
-
-      set[:reblog].each { | row |
-        next if row.nil?
-        from, who, post = row
-        reblog[from] = [] unless reblog.has_key? from
-        reblog[from] << [who, post]
-      } unless set[:reblog].nil?
-
-      like.concat(set[:like]) unless set[:like].nil?
     } 
     todel << page
   }
 
   # Only collapse if there is data
-  if like.length > 0
-    payload = [reblog, like, original]
+  if history.length > 0
+    payload = history
     payload << lastscrape if lastscrape
 
     payload = payload.to_json
@@ -123,6 +99,6 @@ startNodes.each { | x |
 
     ## Make sure that we don't remove the file until
     # after our intended output has been written
-    todel.each { | file | File.unlink(file) }
+    # todel.each { | file | File.unlink(file) }
   end
 }
