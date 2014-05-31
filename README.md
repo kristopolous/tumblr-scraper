@@ -1,3 +1,6 @@
+# Introduction
+
+
 ## tumblr-all-downloader
 
 tumblr-all-downloader (the `scraper`) is for scraping tumblr blogs to get posts, notes, feeds and videos. The script is
@@ -112,6 +115,35 @@ The way I'm using this script is as follows:
 It's not the fastest thing on the planet, but it does work.
 
 > Note: running `note-collapse` over a blog currently being scraped feels like a bad idea and is totally not supported.  `note-collapse` should be run carefully, on directories that aren't being processed by any other script here.
+
+## top-fans
+
+top-fans will take the collapsed notes from `note-collapse` and then compute the following:
+
+  * Total number of reblogs per user
+  * Total number of likes per user
+
+When run over a blog, you can use this tool to discover similar content.
+
+### output
+
+Currently it outpus in very human-format ways - the top 25 in three columns:
+
+  * reblogs + likes
+  * likes
+  * reblogs
+
+With each numerically sorted.
+
+### suggested use
+
+Presuming we are trying to find blogs related to say, [http://heck-yeah-old-tech.tumblr.com/](http://heck-yeah-old-tech.tumblr.com/) we do the following:
+
+  $ ruby tumblr-all-downloader.rb http://heck-yeah-old-tech.tumblr.com/ .
+  ...
+  come back in about 20 minutes.
+  ...
+
 
 ## log-digest
 
