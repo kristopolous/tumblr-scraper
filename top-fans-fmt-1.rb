@@ -57,7 +57,7 @@ top = [whoMap, likeMap, reblogMap].map { | which |
 }.transpose
 
 if header
-  printf "\n %-31s %-30s %s\n", "total", "likes", "reblogs" 
+  printf "\n %-31s %-30s %s\n", "total", "likes", "reblogs"
   top.each { | row |
     row.each { | who, count |
       printf "%5d %-25s", count, who
