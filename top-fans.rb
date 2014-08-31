@@ -34,12 +34,13 @@ $stdin.each_line { | file |
   end
 
   File.open(file, 'r') { | content |
-    JSON.parse(content.read)[0..20].each { | entry |
+    JSON.parse(content.read)[0..200].each { | entry |
       if entry.is_a?(String)
         who = entry
         likeMap[who] = 1 + (likeMap[who] || 0)
       else
-        source, who, post = entry
+        who, source, post = entry
+        print "#{who} "
         reblogMap[who] = 1 + (reblogMap[who] || 0)
       end
       whoMap[who] = 1 + (whoMap[who] || 0)
