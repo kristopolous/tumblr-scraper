@@ -1,36 +1,36 @@
+#!/usr/bin/env ruby
 #
-# top-fans will take a collapsed blog (see note-collapse)
+# top-fans will take a stdin list of collapsed graphs (see note-collapse)
 # read through the posts, and then print out the top rebloggers
-# and fans from that blog
+# and fans from all those in stdin.
+#
+# By using stdin, this allows one to read over multiple blogs.
 #
 require 'rubygems'
 require 'bundler'
 Bundler.require
 
 $start = Time.new
-Dir.chdir(ARGV[0])
-fileList = Dir["*.json"]
 
 header = true
-if ARGV.length > 1
+if ARGV.length > 0
   header = false
 end
 
-printf "#{fileList.length} posts" if header
 count = 0
 
-limit = (ARGV[1] || 25).to_i
+limit = (ARGV[0] || 35).to_i
 
 whoMap = {}
 likeMap = {}
 reblogMap = {}
 
-fileList.each { | file |
+$stdin.each_line { | file |
+  file.strip!
   count += 1
 
   if count % 200 == 0 and header
-    printf "."
-    $stdout.flush
+    $stderr.putc "."
   end
 
   File.open(file, 'r') { | content |
@@ -46,6 +46,8 @@ fileList.each { | file |
     }
   } 
 }
+
+limit = [whoMap.length, likeMap.length, reblogMap.length, limit].min - 1
 
 top = [whoMap, likeMap, reblogMap].map { | which |
   which.sort_by { | who, count | count }.reverse[0..limit]
