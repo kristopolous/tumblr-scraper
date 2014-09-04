@@ -34,16 +34,19 @@ $stdin.each_line { | file |
   end
 
   File.open(file, 'r') { | content |
-    JSON.parse(content.read)[0..200].each { | entry |
+    json=JSON.parse(content.read)
+    metric = Math.sqrt(1.0/json.length)
+
+    json[0..30].each { | entry |
       if entry.is_a?(String)
         who = entry
-        likeMap[who] = 1 + (likeMap[who] || 0)
+        likeMap[who] = metric + (likeMap[who] || 0.0)
       else
         who, source, post = entry
-        print "#{who} "
-        reblogMap[who] = 1 + (reblogMap[who] || 0)
+        who=source
+        reblogMap[who] = metric + (reblogMap[who] || 0.0) 
       end
-      whoMap[who] = 1 + (whoMap[who] || 0)
+      whoMap[who] = metric + (whoMap[who] || 0.0)
     }
   } 
 }
@@ -58,7 +61,7 @@ if header
   printf "\n %-31s %-30s %s\n", "total", "likes", "reblogs"
   top.each { | row |
     row.each { | who, count |
-      printf "%5d %-25s", count, who
+      printf "%5d %-25s", count*10, who
     }
     printf "\n"
   }
