@@ -2,16 +2,16 @@
 /*
  * A simple global blacklist maintainer for the greasemonkey plugin.
  */
-if(isset($_POST['urlList'])) {
-  $newList = $_POST['urlList'];
+if(isset($_GET['urlList'])) {
+  $newList = $_GET['urlList'];
 } else {
   $newList = array();
 }
 
-if(isset($_POST['lastID'])) {
-  $lastID = $_POST['lastID'];
+if(isset($_GET['last'])) {
+  $last = intval($_GET['last']);
 } else {
-  $lastID = 0;
+  $last = 0;
 }
 
 if(file_exists('blacklist.txt')) {
@@ -20,7 +20,7 @@ if(file_exists('blacklist.txt')) {
   $list = array();
 }
 
-$toSend = array_slice($list, $lastID);
+$toSend = array_slice($list, $last);
 
 $dirty = false;
 foreach($newList as $url) {
