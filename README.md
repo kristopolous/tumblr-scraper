@@ -1,6 +1,20 @@
 # Introduction
 
 
+I have a personal project where I'm trying to build a recommendation engine based on tumblr.  These are the tools I'm using to build it.
+
+I don't have oodles of VC capital to throw at this problem and so this is designed to run on a regular consumer grade internet connection on somewhat moderlhardware. The machine I use is an i5-3270 with 32GB of RAM and 8TB of SATA raid - my connection is a measely 3MB DSL.
+
+Let's go over the tools:
+
+  * tumblr-all-downloader - Gets the graphs, videos, and feeds of a blog in HTML
+  * note-collapse - Ingests the HTML graphs from the first script into .json files and deletes the graphs.
+  * log-digest - Ingests the posts from the first script and creates a json file representing the image content, does NOT delete the feeds.
+  * top-fans - Finds related blogs based on the graphs of a scraped blog.
+  * profile-create - Creates an inverse mapping of users -> blogs.
+
+There's other tools here too ... I'll document them as time permits.
+
 ## tumblr-all-downloader
 
 tumblr-all-downloader (the `scraper`) is for scraping tumblr blogs to get posts, notes, feeds and videos. The script is
@@ -137,12 +151,18 @@ With each numerically sorted.
 
 ### suggested use
 
-Presuming we are trying to find blogs related to say, [http://heck-yeah-old-tech.tumblr.com/](http://heck-yeah-old-tech.tumblr.com/) we do the following:
+Presuming we are trying to find blogs related to say, [http://gardenofflowers.tumblr.com/](http://gardenofflowers.tumblr.com/) we do the following:
 
-  $ ruby tumblr-all-downloader.rb http://heck-yeah-old-tech.tumblr.com/ .
+  $ ruby tumblr-all-downloader.rb http://gardenofflowers.tumblr.com/ .
   ...
-  come back in about 20 minutes.
+  Come back in about 3 - 4 hours.
   ...
+  $ ruby note-collapse.rb gardenofflowers.tumblr.com/graphs
+  ...
+  Probably another 5 minutes
+  ...
+  $ 
+
 
 
 ## log-digest
