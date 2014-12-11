@@ -11,13 +11,14 @@ var host = window.location.host.split('.').shift();
 
 // see if we've banashed this host before
 var exist = GM_getValue(host);
+
 if(!exist) {
   // see if we have the last id recorded
-  var last = GM_getValue('/last');
+  var last = GM_getValue('__last');
   if(!last) {
     last = 0;
   }
-
+  
   // if we haven't then we add it here
   // and remotely!
   GM_setValue(host, 1);
@@ -29,7 +30,7 @@ if(!exist) {
       for(var i = 0; i < json.url.length; i++) {
         GM_setValue(json.url[i], 1);
       }
-      GM_setValue('/last', json.last);
+      GM_setValue('__last', json.last);
     }
   });
 }
