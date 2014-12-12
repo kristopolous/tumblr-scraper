@@ -34,6 +34,8 @@ if($dirty) {
   file_put_contents("blacklist.txt", implode("\n", $list));
 }
 
+header('Content-Type: application/json');
+
 echo json_encode(array(
   'url' => $toSend,
   'last' => count($list)
