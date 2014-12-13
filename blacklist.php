@@ -1,4 +1,7 @@
 <?php
+date_default_timezone_set('UTC');
+$db = new SQLite3("blacklist.db");
+
 /*
  * A simple global blacklist maintainer for the greasemonkey plugin.
  */

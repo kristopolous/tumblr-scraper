@@ -1,0 +1,3 @@
+CREATE TABLE log(log_id integer primary key, site_id integer, foreign key(site_id) references site(id));
+CREATE TABLE site(id integer primary key,name text, count integer);
+
