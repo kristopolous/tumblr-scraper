@@ -8,14 +8,18 @@ startNodes = Dir["*.0"]
 
 def parseReblog(x) 
   begin
-    [
+    res = [
       #from
       x.css('.source_tumblelog').map { | y | y.inner_html }.first,
       #who
       x.css('.tumblelog').map { | y | y.inner_html }.first,
       #post
       x.css('.action').map { | y | y.attr('data-post-url').split('/').pop }.first.to_i,
+      #commentary
+      x.css('blockquote a').map { | y | y.inner_html }.first
     ]
+    res = res[0..-2] if res.last == nil
+    res
   rescue
     puts '.'
     nil
