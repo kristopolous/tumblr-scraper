@@ -1,6 +1,8 @@
 require 'rubygems'
 require 'rack'
 require 'bundler'
+$:.unshift File.dirname(__FILE__)
+require 'profile-grep-smart'
 Bundler.require
 $r = Redis.new
 
@@ -103,6 +105,13 @@ end
 
 class Api
   def initialize(app, options={})
+  end
+
+  def query(qstr)
+    where, what = qstr.split('|')
+    res = profile_grep(where,what)
+    puts res.to_json
+    res
   end
 
   def megaup(what)

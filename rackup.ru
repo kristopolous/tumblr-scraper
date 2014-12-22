@@ -1,3 +1,4 @@
+$:.unshift File.dirname(__FILE__)
 require 'api'
 base = File.dirname(__FILE__)
 
@@ -37,6 +38,15 @@ end
 map "/random" do
   use Api
   run Rack::Server.new
+end
+
+map "/query" do
+  use Api
+  run Rack::Server.new
+end
+
+map "/search" do | env |
+  run Rack::File.new(base + "/static/search.html")
 end
 
 map "/" do |env|
