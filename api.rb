@@ -108,7 +108,7 @@ class Api
   end
 
   def query(qstr)
-    where, what = qstr.split('|')
+    where, what = qstr.split(';')
     profile_grep(where,what)
   end
 

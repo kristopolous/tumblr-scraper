@@ -10,54 +10,37 @@ require 'rubygems'
 require 'bundler'
 Bundler.require
 
-def profile_grep(blog, qstr)
+def profile_grep(blogList, qstr)
+  start = Time.new
   resultsMap = {}
+  reg = Regexp.new(qstr)
 
+  postList = []
   count = 0
-  if File.exist? blog + "/logs/posts.json"
-    posts = JSON.parse(File.open(blog + "/logs/posts.json").read)
-  else
-    puts "Need to digest logs on #{blog}"
-    []
-  end
+  which = 0
+  blogList.split(',').each { | endpoint | 
+    blog = '/raid/tumblr/' + endpoint + '.tumblr.com'
+    postFile = blog + "/logs/posts.json"
+    next unless File.exist? postFile
 
-  posts.each { | value, key |
-    count += 1
-    file =  blog + "/graphs/#{value}.json"
+    posts = JSON.parse(File.open(postFile, 'r').read)
 
-    if count == 1000
-      break
-    end
+    posts.each { | value, key |
+      count += 1
+      file = blog + "/graphs/#{value}.json"
 
-    next unless File.exist? file
-     
-    File.open(file, 'r') { | content |
-      resultsMap[value] = 0
-      json = JSON.parse(content.read)
-      map = {}
-      json.each { | entry |
-        if entry.is_a?(String)
-          who = entry
-        else
-          who, source, post = entry
-          who = source
-        end
-
-        unless map.key? who
-          map[who] = true
-          unless (who =~ /#{qstr}/).nil?
-            resultsMap[value] += 1.0
-          end
-        end
-      }
-      resultsMap[value] /= [json.length, 70].max.to_f
-    } 
-
+      break if count == 80000
+      next unless File.exist? file
+       
+      data = File.open(file, 'r').read(20000)
+      resultsMap[value] = [data.scan(reg).length, which]
+    }
+    postList << posts
+    which += 1
   }
 
-  finalMap = []
-  resultsMap.sort_by{|k, v| v }.reverse.each { | name, count |
-    finalMap << posts[name] unless count == 0
+  puts Time.new - start
+  resultsMap.sort_by{|k, v| v[0] }.reverse.slice(0,100).map { | name, count |
+    postList[count[1]][name]
   }
-  finalMap
 end
