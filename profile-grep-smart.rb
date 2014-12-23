@@ -25,7 +25,7 @@ def profile_grep(blog, qstr)
     count += 1
     file =  blog + "/graphs/#{value}.json"
 
-    if count == 100
+    if count == 1000
       break
     end
 

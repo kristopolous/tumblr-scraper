@@ -109,9 +109,7 @@ class Api
 
   def query(qstr)
     where, what = qstr.split('|')
-    res = profile_grep(where,what)
-    puts res.to_json
-    res
+    profile_grep(where,what)
   end
 
   def megaup(what)
@@ -166,7 +164,7 @@ class Api
 
   def call(env)
     [200, {}, 
-      self.send(env['REQUEST_PATH'][1..-1],env['QUERY_STRING']).to_json
+      [self.send(env['REQUEST_PATH'][1..-1],env['QUERY_STRING']).to_json]
     ]
   end
 end
