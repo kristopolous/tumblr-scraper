@@ -16,6 +16,7 @@ def profile_grep(blogList, qstr)
   reg = Regexp.new(qstr)
 
   postList = []
+  pathList = []
   count = 0
   which = 0
   blogList.split(',').each { | endpoint | 
@@ -36,11 +37,12 @@ def profile_grep(blogList, qstr)
       resultsMap[value] = [data.scan(reg).length, which]
     }
     postList << posts
+    pathList << endpoint
     which += 1
   }
 
   puts Time.new - start
   resultsMap.sort_by{|k, v| v[0] }.reverse.slice(0,100).map { | name, count |
-    postList[count[1]][name]
+    postList[count[1]][name]  + [[pathList[count[1]],name].join(';')]
   }
 end

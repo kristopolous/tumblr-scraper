@@ -40,6 +40,11 @@ map "/random" do
   run Rack::Server.new
 end
 
+map "/similar" do
+  use Api
+  run Rack::Server.new
+end
+
 map "/query" do
   use Api
   run Rack::Server.new
