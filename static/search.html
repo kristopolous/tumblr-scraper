@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<style>
+#results span {display:block;padding:0.25em}
+body{background:black;color:white}
+</style>
+<body>
+<form>
+  <input type=text placeholder=domain name=domain id=domain>
+  <input type=text placeholder=query name=query id=query>
+  <input type=submit value=search>
+</form>
+<div id=results>
+</div>
+</body>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
+
+<script>
+$(function() {
+  var qs = (function(a) {
+      if (a == "") return {};
+      var b = {};
+      for (var i = 0; i < a.length; ++i)
+      {
+          var p=a[i].split('=', 2);
+          if (p.length == 1)
+              b[p[0]] = "";
+          else
+              b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+      }
+      return b;
+  })(window.location.search.substr(1).split('&'));
+
+  $("#domain").val(qs.domain);
+  $("#query").val(qs.query);
+
+  $.getJSON("/query?" + $("#domain").val() + ";" + $("#query").val(), function(res) {
+    $("#results").empty();
+    _.each(res, function(row, res_ix) {
+      var span = $("<span />").appendTo($("#results"));
+      _.each(row[0], function(url, ix) {
+        var img =  $("<a href=" + row[1][ix] +">").append( 
+          $("<img />").attr({src: url})
+        )
+        span.append(img);
+        if(ix == 0) {
+          img.hover(function(){
+            img.parent().children().each(function(){
+              this.firstChild.src = this.href;
+            });
+          });
+        }
+      });
+    });
+  });
+});
+</script>
