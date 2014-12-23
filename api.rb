@@ -3,6 +3,7 @@ require 'rack'
 require 'bundler'
 $:.unshift File.dirname(__FILE__)
 require 'profile-grep-smart'
+require 'top-fans-api'
 Bundler.require
 $r = Redis.new
 
@@ -105,6 +106,10 @@ end
 
 class Api
   def initialize(app, options={})
+  end
+
+  def similar(query)
+    find_similar(query)
   end
 
   def query(qstr)

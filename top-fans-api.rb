@@ -9,12 +9,11 @@ require 'rubygems'
 require 'bundler'
 Bundler.require
 
-def similar(list)
+def find_similar(list)
   limit = 35
 
   whoMap = {}
-  likeMap = {}
-  reblogMap = {}
+  count = 0
   list.split(',').each { | row |
     blog, entry = row.split(';') 
 
@@ -26,24 +25,17 @@ def similar(list)
       json=JSON.parse(content.read)
       metric = Math.sqrt(1.0/json.length)
 
-      json[0..30].each { | entry |
+      json[0..1000].each { | entry |
         if entry.is_a?(String)
           who = entry
-          likeMap[who] = metric + (likeMap[who] || 0.0)
         else
           who, source, post = entry
           who=source
-          reblogMap[who] = metric + (reblogMap[who] || 0.0) 
         end
         whoMap[who] = metric + (whoMap[who] || 0.0)
       }
     } 
   }
 
-  limit = [whoMap.length, likeMap.length, reblogMap.length, limit].min - 1
-
-  top = [whoMap, likeMap, reblogMap].map { | which |
-    which.sort_by { | who, count | count }.reverse[0..limit]
-  }.transpose
-  top
+  whoMap.sort_by { | who, count | (1 - count) }[0..limit]
 end

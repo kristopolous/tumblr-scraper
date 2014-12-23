@@ -1,9 +1,11 @@
 <!doctype html>
 <html>
 <style>
+#links a { display:block; font-weight:normal}
 #results span {display:block;padding:0.25em 0}
 body{background:black;color:white;margin:0}
-#sim { position: fixed;bottom:0;right:0;text-align:center;font-weight:bold;background:black;width:4em}
+img {max-width: 45%}
+#sim { position: fixed;bottom:0;right:0;font-weight:bold;background:black;min-width:4em}
 </style>
 <body>
 <form>
@@ -12,7 +14,10 @@ body{background:black;color:white;margin:0}
   <input type=submit value=search>
 </form>
 <div id=sim>
-  <a href="#" onclick=doSearch() id=count>0</a>
+  <div id=links></div>
+  <div>
+  <a target=_blank id=count>0</a>
+  </div>
 </div>
 <div id=results>
 </div>
@@ -23,12 +28,32 @@ body{background:black;color:white;margin:0}
 <script>
 var qMap = {};
 function addQuery(what) {
-  if(qMap[what]) { return; }
-  qMap[what] = 1;
+  if(what) {
+    if(qMap[what]) { return; }
+    qMap[what] = 1;
+    localStorage['keys'] = _.keys(qMap).join(',');
+  }
+  $.getJSON('/similar?' + _.keys(qMap).join(','), function(res) {
+    $("#links").empty();
+    res = res.reverse();
+    _.each(res, function(row) {
+      var url = row[0];
+      $("#links").append(
+        "<a target=_blank href=http://" + url + ".tumblr.com>" + url + "</a>"
+      );
+    });
+  })
   $("#count").html(_.values(qMap).length);
 }
 
 $(function() {
+  if (localStorage['keys']) {
+    _.each(localStorage['keys'].split(','), function(what) {
+      qMap[what] = 1;
+    });
+    addQuery(false);
+  }
+  
   var qs = (function(a) {
       if (a == "") return {};
       var b = {};
