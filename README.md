@@ -276,9 +276,21 @@ Then using this, if you ran `log-digest` AND have scraped the username's blog yo
 
 I guess you could also use Tor, but then it will be sloow.  Rabbit is a good compression based proxy for tumblr in general - since for some unknown ungodly reason, being on the site drags a 2-300K/s downstream just idling (I haven't spent time looking into it, but it's just absurd).
 
+##### lemma: chromium / chrome doesn't allow me to directly set the proxy and gives me some kind of grief.
+
+**A:** That's right. Google's not your friend. You deserve better.
+
 #### Q: The resolution on some of these assets kinda sucks. Can you magically fix this?
 
 **A:** Of course. Tumblr stores higher resolution assets on almost everything.  The reason you don't see them is probably because of the stupid theme the person is using.  Replace the number at the end with 1280 instead of 500 and you are good.  The log-digest is smart enough to not fall for absurd things like this.
+
+#### Q: I'm getting a "there's nothing to see here" with some weird full-screen gif playing in the background ... what is this? I want the content. Can you get that?
+
+**A:** Yes. But first, have you been looking at dirty things on the internet again? Don't answer that.  That nuked blog had an RSS feed which links to assets which are probably still live.  The RSS feed 404's now but the web-based RSS readers have already scraped it.  This means that you can do something like:
+
+    http://feedly.com/i/spotlight/http://nuked-blog.tumblr.com/rss
+
+In your browser and blam, there you go.
 
 Authors
 -------
