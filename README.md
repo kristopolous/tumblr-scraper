@@ -265,6 +265,17 @@ Then using this, if you ran `log-digest` AND have scraped the username's blog yo
 
 > Note: Although a good deal of effort was put into compacting the information sent to redis, multiple gigabytes of RAM (or redis-clustering) is highly recommended.
 
+### Troubleshooting
+
+#### Q: Hi. I was using your tool but now I get all these error pages from tumblr after a while.
+
+**A:** Yes. Tumblr *will block you* after extensively using this tool - by IP address of course. The work-around is to use a proxy specified at the shell.  You can run things like rabbit or tinyproxy on a $5 vm or ec2 instance (they usually permit 1TB of traffic per month ... TB) and then do something like this:
+
+    $ export http_proxy=http://stupid-tumblr.hax0rzrus.com:9666
+    $ cat sites | xargs -n 1 -P 10 ...
+
+I guess you could also use Tor, but then it will be sloow.  Rabbit is a good compression based proxy for tumblr in general - since for some unknown ungodly reason, being on the site drags a 2-300K/s downstream just idling (I haven't spent time looking into it, but it's just absurd).
+
 Authors
 -------
 
