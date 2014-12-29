@@ -276,6 +276,10 @@ Then using this, if you ran `log-digest` AND have scraped the username's blog yo
 
 I guess you could also use Tor, but then it will be sloow.  Rabbit is a good compression based proxy for tumblr in general - since for some unknown ungodly reason, being on the site drags a 2-300K/s downstream just idling (I haven't spent time looking into it, but it's just absurd).
 
+#### Q: The resolution on some of these assets kinda sucks. Can you magically fix this?
+
+**A:** Of course. Tumblr stores higher resolution assets on almost everything.  The reason you don't see them is probably because of the stupid theme the person is using.  Replace the number at the end with 1280 instead of 500 and you are good.  The log-digest is smart enough to not fall for absurd things like this.
+
 Authors
 -------
 
