@@ -265,6 +265,17 @@ Then using this, if you ran `log-digest` AND have scraped the username's blog yo
 
 > Note: Although a good deal of effort was put into compacting the information sent to redis, multiple gigabytes of RAM (or redis-clustering) is highly recommended.
 
+## profile-grep-smart
+
+profile-grep-smart takes a stdin list of collapsed graphs (through `note-collapse`) and then reads over them
+in a completely unparsed blob looking for the PCRE-style queries supplied in the ARGV parameters.  It records
+the count number of them and then returns that, sorted, as the result.
+
+## asset-grab
+
+asset-grab will pull down the assets that get logged from a tumblr site.  You should have already ran a 
+`log-digest` over the list before running this.
+
 ### Troubleshooting
 
 #### Q: Hi. I was using your tool but now I get all these error pages from tumblr after a while.
