@@ -3,7 +3,7 @@
 
 I have a personal project where I'm trying to build a recommendation engine based on tumblr.  These are the tools I'm using to build it.
 
-I don't have oodles of VC capital to throw at this problem and so this is designed to run on a regular consumer grade internet connection on somewhat moderlhardware. The machine I use is an i5-3270 with 32GB of RAM and 8TB of SATA raid - my connection is a measely 3MB DSL.
+I don't have oodles of VC capital to throw at this problem and so this is designed to run on a regular consumer grade internet connection on somewhat modern hardware. The machine I use is an i5-3270 with 32GB of RAM and 8TB of SATA raid - my connection is a measely 3MB DSL.
 
 Let's go over the tools:
 
