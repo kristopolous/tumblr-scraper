@@ -292,10 +292,6 @@ I guess you could also use Tor, but then it will be sloow.  Rabbit is a good com
 
 In your browser and blam, there you go.
 
-#### Q: This is great stuff. Do you have any other no-bullshit downloaders or scrapers?
-
-**A:** Yes. Self-congratulatory Q&A is wonderful btw.  Another tool I have, written with an equal disregard for the craft of programming, is [tube-get](https://github.com/kristopolous/tube-get) ... This isn't written for a specific site but looks for a number of markers that work on entire classes of sites in order to get the videos.  The code takes a bellicose and ignorant approach which makes it fairly robust to redesigns and other nonsense like that. Small and dumb, whenever possible.
-
 Authors
 -------
 
