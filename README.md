@@ -271,10 +271,24 @@ profile-grep-smart takes a stdin list of collapsed graphs (through `note-collaps
 in a completely unparsed blob looking for the PCRE-style queries supplied in the ARGV parameters.  It records
 the count number of them and then returns that, sorted, as the result.
 
+### output
+
+This is intended to be run as part of the web-stack on the `/query` endpoint. You can look into `api.rb` in
+order to see an implementation of it.  Currently, it has `/raid/tumblr` as a hard-coded endpoint to search.
+
+I'll make it more flexible if a bug is filed.
+
 ## asset-grab
 
 asset-grab will pull down the assets that get logged from a tumblr site.  You should have already ran a 
 `log-digest` over the list before running this.
+
+### output
+
+asset-grab doesn't actually download the content ... instead it outputs content to download to stdout. 
+Ostensibly it's up to the user then to use xargs or any other kind of distributed downloader with a backoff
+algorithm in order to actually retrieve the assets.  I recommend something with open-mpi over some cheap DO or 
+linode machines.  Contact me for exapmles.
 
 ### Troubleshooting
 
