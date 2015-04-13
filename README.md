@@ -265,6 +265,37 @@ Then using this, if you ran `log-digest` AND have scraped the username's blog yo
 
 > Note: Although a good deal of effort was put into compacting the information sent to redis, multiple gigabytes of RAM (or redis-clustering) is highly recommended.
 
+### Troubleshooting
+
+#### Q: Hi. I was using your tool but now I get all these error pages from tumblr after a while.
+
+**A:** Yes. Tumblr *will block you* after extensively using this tool - by IP address of course. The work-around is to use a proxy specified at the shell.  You can run things like rabbit or tinyproxy on a $5 vm or ec2 instance (they usually permit 1TB of traffic per month ... TB) and then do something like this:
+
+    $ export http_proxy=http://stupid-tumblr.hax0rzrus.com:9666
+    $ cat sites | xargs -n 1 -P 10 ...
+
+I guess you could also use Tor, but then it will be sloow.  Rabbit is a good compression based proxy for tumblr in general - since for some unknown ungodly reason, being on the site drags a 2-300K/s downstream just idling (I haven't spent time looking into it, but it's just absurd).
+
+##### lemma: chromium / chrome doesn't allow me to directly set the proxy and gives me some kind of grief.
+
+**A:** That's right. Google's not your friend. You deserve better.
+
+#### Q: The resolution on some of these assets kinda sucks. Can you magically fix this?
+
+**A:** Of course. Tumblr stores higher resolution assets on almost everything.  The reason you don't see them is probably because of the stupid theme the person is using.  Replace the number at the end with 1280 instead of 500 and you are good.  The log-digest is smart enough to not fall for absurd things like this.
+
+#### Q: I'm getting a "there's nothing to see here" with some weird full-screen gif playing in the background ... what is this? I want the content. Can you get that?
+
+**A:** Yes. But first, have you been looking at dirty things on the internet again? Don't answer that.  That nuked blog had an RSS feed which links to assets which are probably still live.  The RSS feed 404's now but the web-based RSS readers have already scraped it.  This means that you can do something like:
+
+    http://feedly.com/i/spotlight/http://nuked-blog.tumblr.com/rss
+
+In your browser and blam, there you go.
+
+#### Q: This is great stuff. Do you have any other no-bullshit downloaders or scrapers?
+
+**A:** Yes. Self-congratulatory Q&A is wonderful btw.  Another tool I have, written with an equal disregard for the craft of programming, is [tube-get](https://github.com/kristopolous/tube-get) ... This isn't written for a specific site but looks for a number of markers that work on entire classes of sites in order to get the videos.  The code takes a bellicose and ignorant approach which makes it fairly robust to redesigns and other nonsense like that. Small and dumb, whenever possible.
+
 Authors
 -------
 

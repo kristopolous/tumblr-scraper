@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<style>
+#links a { display:block; font-weight:normal}
+#results span {display:block;padding:0.25em 0}
+body{background:black;color:white;margin:0}
+img {max-width: 45%}
+#sim { position: fixed;bottom:0;right:0;font-weight:bold;background:black;min-width:4em}
+</style>
+<body>
+<form>
+  <input size=60 type=text placeholder=domain name=domain id=domain>
+  <input type=text placeholder=query name=query id=query>
+  <input type=submit value=search>
+</form>
+<div id=sim>
+  <div id=links></div>
+  <div>
+  <a target=_blank id=count>0</a>
+  </div>
+</div>
+<div id=results>
+</div>
+</body>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.0.min.js"></script>
+
+<script>
+var qMap = {};
+function addQuery(what) {
+  var omit = $("#domain").val().split(',');
+  if(what) {
+    if(qMap[what]) { return; }
+    qMap[what] = 1;
+    localStorage['keys'] = _.keys(qMap).join(',');
+  }
+  $.getJSON('/similar?' + _.keys(qMap).join(','), function(res) {
+    $("#links").empty();
+    res = res.reverse();
+    _.each(res, function(row) {
+      if(omit.indexOf(url) != -1) {
+        return;
+      }
+      var url = row[0];
+      $("#links").append(
+        "<a target=_blank href=http://" + url + ".tumblr.com>" + url + "</a>"
+      );
+    });
+  })
+  $("#count").html(_.values(qMap).length);
+}
+
+$(function() {
+  if (localStorage['keys']) {
+    _.each(localStorage['keys'].split(','), function(what) {
+      qMap[what] = 1;
+    });
+    addQuery(false);
+  }
+  
+  var qs = (function(a) {
+      if (a == "") return {};
+      var b = {};
+      for (var i = 0; i < a.length; ++i)
+      {
+          var p=a[i].split('=', 2);
+          if (p.length == 1)
+              b[p[0]] = "";
+          else
+              b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+      }
+      return b;
+  })(window.location.search.substr(1).split('&'));
+
+  $("#domain").val(qs.domain);
+  $("#query").val(qs.query);
+
+  $.getJSON("/query?" + $("#domain").val() + ";" + $("#query").val(), function(res) {
+    $("#results").empty();
+    _.each(res, function(row, res_ix) {
+      var span = $("<span />").appendTo($("#results"));
+      _.each(row[0], function(url, ix) {
+        var img = $("<img />").attr({
+          title: row[1][ix],
+          src: url
+        });
+        span.append(img);
+
+        img.click(function(){
+          addQuery(row[2]);
+        });
+
+        if(ix == 0) {
+          img.hover(function(){
+            img.parent().children().each(function(){
+              this.src = this.title;
+            });
+          });
+        }
+      });
+    });
+  });
+});
+</script>

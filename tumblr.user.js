@@ -24,7 +24,7 @@ if(!exist) {
   GM_setValue(host, 1);
   GM_xmlhttpRequest({
     method: 'GET',
-    url: 'http://9ol.es/blacklist.php?last=' + last + '&urlList[]=' + host,
+    url: 'http://10.0.0.1/blacklist.php?last=' + last + '&urlList[]=' + host,
     onload: function(response) {
       var json = JSON.parse(response.responseText);
       for(var i = 0; i < json.url.length; i++) {

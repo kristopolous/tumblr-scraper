@@ -1,6 +1,9 @@
 require 'rubygems'
 require 'rack'
 require 'bundler'
+$:.unshift File.dirname(__FILE__)
+require 'profile-grep-smart'
+require 'top-fans-api'
 Bundler.require
 $r = Redis.new
 
@@ -105,6 +108,15 @@ class Api
   def initialize(app, options={})
   end
 
+  def similar(query)
+    find_similar(query)
+  end
+
+  def query(qstr)
+    where, what = qstr.split(';')
+    profile_grep(where,what)
+  end
+
   def megaup(what)
     vote(what, 5.0)
   end
@@ -157,7 +169,7 @@ class Api
 
   def call(env)
     [200, {}, 
-      self.send(env['REQUEST_PATH'][1..-1],env['QUERY_STRING']).to_json
+      [self.send(env['REQUEST_PATH'][1..-1],env['QUERY_STRING']).to_json]
     ]
   end
 end
