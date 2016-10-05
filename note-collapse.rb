@@ -16,6 +16,10 @@ $start = Time.new
 Dir.chdir(ARGV[0])
 startNodes = Dir["*.0"]
 
+# If the user doesn't specify the right directory then we try another
+startNodes = Dir["graphs/*.0"] if startNodes.length == 0
+
+
 def parseReblog(x) 
   begin
     res = [
