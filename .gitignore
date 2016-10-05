@@ -4,3 +4,4 @@ sites
 .bundle
 .DS_Store
 .gems
+ignorelist.txt
