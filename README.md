@@ -169,44 +169,44 @@ Presuming we are trying to find blogs related to say, [http://retrodust.tumblr.c
 		...
 		Probably another 5 minutes
 		...
-		$ find retrodust.tumblr.com/graphs/ -name \*.json | ./top-fans.rb 
-		...........
-		 total                           likes                          reblogs
-		 1628 retrodust                 1189 moonsykes                 1628 retrodust                
-		 1363 pixelated-entropy          732 fahrradkatze              1363 pixelated-entropy        
-		 1189 moonsykes                  335 slidinsideways             212 80sdoesitbetter          
-			732 fahrradkatze               226 thecreamofhercrop          159 ashleyrunnels            
-			335 slidinsideways             221 chipfuel                   125 constellationstar45      
-			294 constellationstar45        212 starscream-and-hutch       125 timurmusabay             
-			226 thecreamofhercrop          209 oracleofmefi               117 staticagenostalgia       
-			221 chipfuel                   171 guyjaundice                 96 vivanlos80               
-			215 starscream-and-hutch       169 constellationstar45         89 unkindheart              
-			212 80sdoesitbetter            161 gentlepowerthings           88 trashback                
-			209 oracleofmefi               156 monsieurlacombe             69 andreserm                
-			171 guyjaundice                154 ivory                       68 bonytanks                
-			165 gentlepowerthings          141 kirajuul                    65 peazy86                  
-			163 ivory                      117 overleningrad               65 backtolife1991           
-			162 peazy86                    114 simulacreant                64 madkid3                  
-			159 ashleyrunnels              109 toreap                      63 mildviolence             
-			156 monsieurlacombe            108 dafunkybot                  60 eight13                  
-			154 toreap                     105 onwingslikeseagulls         59 partyandbullshitand      
-			147 eight13                    105 gabrielverdon               50 astrogunpowergrid        
-			144 kirajuul                   101 70years                     47 calledtobesons           
-			134 simulacreant                96 peazy86                     47 iamcinema                
-			129 overleningrad               87 eight13                     46 pepsunborja              
-			126 retrostuff88                87 retrostuff88                45 anjunaalchemy            
-			125 timurmusabay                77 metalzoic                   44 toreap                   
-			120 vivanlos80                  76 iondrimba                   44 evocative-nightmare      
-			119 dafunkybot                  75 summerstarkiss              42 vhs-80                   
-			117 staticagenostalgia          68 altkomsu                    40 blvckbird-v35            
-			106 onwingslikeseagulls         67 chosimbaone                 39 zapher                   
-			105 gabrielverdon               67 zorrovolador                39 retrostuff88             
-			102 70years                     64 jjpinbot                    38 supasteezin              
-			 89 unkindheart                 63 vadim-august                38 destination80s           
-			 88 trashback                   63 motionpixel                 37 great-atlas              
-			 86 summerstarkiss              63 reaganatbitburg             37 xx-xx9                   
-			 83 jjpinbot                    60 gatchaponblog               37 warners-retro-corner     
-			 82 soniccone                   58 somethingtedious            37 street-trash  
+    $ find retrodust.tumblr.com/graphs/ -name \*.json | ./top-fans.rb 
+    ...........
+     total                           likes                          reblogs
+     1628 retrodust                 1189 moonsykes                 1628 retrodust                
+     1363 pixelated-entropy          732 fahrradkatze              1363 pixelated-entropy        
+     1189 moonsykes                  335 slidinsideways             212 80sdoesitbetter          
+      732 fahrradkatze               226 thecreamofhercrop          159 ashleyrunnels            
+      335 slidinsideways             221 chipfuel                   125 constellationstar45      
+      294 constellationstar45        212 starscream-and-hutch       125 timurmusabay             
+      226 thecreamofhercrop          209 oracleofmefi               117 staticagenostalgia       
+      221 chipfuel                   171 guyjaundice                 96 vivanlos80               
+      215 starscream-and-hutch       169 constellationstar45         89 unkindheart              
+      212 80sdoesitbetter            161 gentlepowerthings           88 trashback                
+      209 oracleofmefi               156 monsieurlacombe             69 andreserm                
+      171 guyjaundice                154 ivory                       68 bonytanks                
+      165 gentlepowerthings          141 kirajuul                    65 peazy86                  
+      163 ivory                      117 overleningrad               65 backtolife1991           
+      162 peazy86                    114 simulacreant                64 madkid3                  
+      159 ashleyrunnels              109 toreap                      63 mildviolence             
+      156 monsieurlacombe            108 dafunkybot                  60 eight13                  
+      154 toreap                     105 onwingslikeseagulls         59 partyandbullshitand      
+      147 eight13                    105 gabrielverdon               50 astrogunpowergrid        
+      144 kirajuul                   101 70years                     47 calledtobesons           
+      134 simulacreant                96 peazy86                     47 iamcinema                
+      129 overleningrad               87 eight13                     46 pepsunborja              
+      126 retrostuff88                87 retrostuff88                45 anjunaalchemy            
+      125 timurmusabay                77 metalzoic                   44 toreap                   
+      120 vivanlos80                  76 iondrimba                   44 evocative-nightmare      
+      119 dafunkybot                  75 summerstarkiss              42 vhs-80                   
+      117 staticagenostalgia          68 altkomsu                    40 blvckbird-v35            
+      106 onwingslikeseagulls         67 chosimbaone                 39 zapher                   
+      105 gabrielverdon               67 zorrovolador                39 retrostuff88             
+      102 70years                     64 jjpinbot                    38 supasteezin              
+       89 unkindheart                 63 vadim-august                38 destination80s           
+       88 trashback                   63 motionpixel                 37 great-atlas              
+       86 summerstarkiss              63 reaganatbitburg             37 xx-xx9                   
+       83 jjpinbot                    60 gatchaponblog               37 warners-retro-corner     
+       82 soniccone                   58 somethingtedious            37 street-trash  
 
 This doesn't take the volume of a users' post into consideration as a normalized magnitude but it helps try and find similar users
 
