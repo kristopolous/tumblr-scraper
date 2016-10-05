@@ -1,3 +1,10 @@
+#!/usr/bin/ruby
+#
+# note-collapse collapses notes grabbed through the main downloader into
+# succinct json files.  In order to collapse a set of notes use
+#
+#   ./note-collapse.rb /path/to/the/notes/graph
+#
 require 'rubygems'
 require 'bundler'
 Bundler.require
