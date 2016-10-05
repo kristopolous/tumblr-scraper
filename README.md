@@ -15,6 +15,14 @@ Let's go over the tools:
 
 There's other tools here too ... I'll document them as time permits.
 
+## Setup
+
+In Oct 2016 this is what I had to do to get this running:
+  
+  $ sudo apt-get install ruby ruby-dev libmysqlclient-dev
+  $ sudo gem install bundler
+  $ bundle install
+
 ## tumblr-all-downloader
 
 tumblr-all-downloader (the `scraper`) is for scraping tumblr blogs to get posts, notes, feeds and videos. The script is
