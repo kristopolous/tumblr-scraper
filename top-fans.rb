@@ -6,6 +6,18 @@
 #
 # By using stdin, this allows one to read over multiple blogs.
 #
+# This is currently limited to a value set below (see the line with ARGV[0])
+#
+# Usage: 
+#
+#   You need to feed json files into stdin to get useful results. The
+#   json files are the output from the note-collapse upon the graph
+#   directory.
+#
+#   For instance:
+#
+#   $ find /large/tumblr/retrodust.tumblr.com/notes -name \*.json | ./top-fans.rb
+#
 require 'rubygems'
 require 'bundler'
 Bundler.require
@@ -34,7 +46,7 @@ $stdin.each_line { | file |
   end
 
   File.open(file, 'r') { | content |
-    json=JSON.parse(content.read)
+    json = JSON.parse(content.read)
     metric = Math.sqrt(1.0/json.length)
 
     json[0..30].each { | entry |
