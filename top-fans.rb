@@ -36,6 +36,8 @@ limit = (ARGV[0] || 35).to_i
 whoMap = {}
 likeMap = {}
 reblogMap = {}
+flatMap = {}
+scale = 20.0
 
 $stdin.each_line { | file |
   file.strip!
@@ -47,7 +49,7 @@ $stdin.each_line { | file |
 
   File.open(file, 'r') { | content |
     json = JSON.parse(content.read)
-    metric = Math.sqrt(1.0/json.length)
+    metric = Math.sqrt(1.0 / json.length)
 
     json[0..30].each { | entry |
       if entry.is_a?(String)
@@ -55,25 +57,26 @@ $stdin.each_line { | file |
         likeMap[who] = metric + (likeMap[who] || 0.0)
       else
         who, source, post = entry
-        who=source
+        who = source
         reblogMap[who] = metric + (reblogMap[who] || 0.0) 
       end
       whoMap[who] = metric + (whoMap[who] || 0.0)
+      flatMap[who] = (flatMap[who] || 0) + 1.0 / scale
     }
   } 
 }
 
-limit = [whoMap.length, likeMap.length, reblogMap.length, limit].min - 1
+limit = [whoMap.length, likeMap.length, reblogMap.length, flatMap.length, limit].min - 1
 
-top = [whoMap, likeMap, reblogMap].map { | which |
+top = [whoMap, likeMap, reblogMap, flatMap].map { | which |
   which.sort_by { | who, count | count }.reverse[0..limit]
 }.transpose
 
 if header
-  printf "\n %-31s %-30s %s\n", "total", "likes", "reblogs"
+  printf "\n %-31s %-30s %-30s %s\n", "total", "likes", "reblogs", "flat"
   top.each { | row |
     row.each { | who, count |
-      printf "%5d %-25s", count*10, who
+    printf "%5d %-25s", count * scale, who
     }
     printf "\n"
   }
