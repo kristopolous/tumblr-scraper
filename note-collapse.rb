@@ -1,9 +1,12 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 #
 # note-collapse collapses notes grabbed through the main downloader into
 # succinct json files.  In order to collapse a set of notes use
 #
 #   ./note-collapse.rb /path/to/the/notes/graph
+#
+# Currently removing the source files has been disabled. You can remove
+# them with something like rm *.[0-9]* after you are done.
 #
 require 'rubygems'
 require 'bundler'
