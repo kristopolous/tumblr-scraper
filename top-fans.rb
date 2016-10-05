@@ -54,10 +54,12 @@ $stdin.each_line { | file |
     json[0..30].each { | entry |
       if entry.is_a?(String)
         who = entry
+        next if file.include?(who) 
         likeMap[who] = metric + (likeMap[who] || 0.0)
       else
         who, source, post = entry
         who = source
+        next if file.include?(who) 
         reblogMap[who] = metric + (reblogMap[who] || 0.0) 
       end
       whoMap[who] = metric + (whoMap[who] || 0.0)
