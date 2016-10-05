@@ -18,6 +18,9 @@
 #
 #   $ find /large/tumblr/retrodust.tumblr.com/notes -name \*.json | ./top-fans.rb
 #
+# If some false positive irrelevant result keeps popping up then you
+# can manually blacklist it in a file called "ignorelist.txt".
+#
 require 'rubygems'
 require 'bundler'
 Bundler.require
@@ -39,6 +42,9 @@ reblogMap = {}
 flatMap = {}
 scale = 20.0
 
+ignoreList = []
+ignoreList = File.readlines('ignorelist.txt').map { | x | x.strip() } if File.exists? "ignorelist.txt"
+
 $stdin.each_line { | file |
   file.strip!
   count += 1
@@ -54,12 +60,12 @@ $stdin.each_line { | file |
     json[0..30].each { | entry |
       if entry.is_a?(String)
         who = entry
-        next if file.include?(who) 
+        next if file.include?(who) or ignoreList.include?(who)
         likeMap[who] = metric + (likeMap[who] || 0.0)
       else
         who, source, post = entry
         who = source
-        next if file.include?(who) 
+        next if file.include?(who) or ignoreList.include?(who)
         reblogMap[who] = metric + (reblogMap[who] || 0.0) 
       end
       whoMap[who] = metric + (whoMap[who] || 0.0)
