@@ -1,13 +1,24 @@
 #!/usr/bin/env ruby
-#
-# asset-grab will pull down the assets that get logged from a tumblr site.  
-# You should have already ran a `log-digest` over the list before running this.
-#
+
+desc = <<EOD
+ asset-grab will pull down the assets that get logged from a tumblr site.  
+ You should have already ran a `log-digest` over the list before running this.
+
+ The parameter should be the logs/ endpoint of a scrape. Ex: 
+ 
+ ./asset-grab.rb somesite.tumblr.com/logs
+EOD
+
 require 'rubygems'
 require 'bundler'
 Bundler.require
 
 $start = Time.new
+
+if ARGV.length == 0
+  print desc
+  exit
+end
 
 Dir.chdir(ARGV[0])
 logList = Dir.glob("*") 

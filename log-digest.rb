@@ -1,17 +1,27 @@
 #!/usr/bin/env ruby
-#
-# Ingests the posts and creates a json file 
-# representing the image content, does NOT delete the feeds.
-#
-# You should pass the /logs endpoint to this script for instance
-#
-# ./log-digest somesite.tumblr.com/logs
-#
+
+desc = <<EOD
+
+ Ingests the posts and creates a posts.json file 
+ representing the image content, does NOT delete the feeds.
+
+ You should pass the /logs endpoint to this script for instance
+
+ ./log-digest somesite.tumblr.com/logs
+
+ After this is done you should see a */logs/posts.json file
+EOD
+
 require 'rubygems'
 require 'bundler'
 Bundler.require
 
 $start = Time.new
+
+if ARGV.length == 0
+  print desc
+  exit
+end
 
 Dir.chdir(ARGV[0])
 logList = Dir.glob("*") 
