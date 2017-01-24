@@ -1,3 +1,12 @@
+#!/usr/bin/env ruby
+#
+# Ingests the posts and creates a json file 
+# representing the image content, does NOT delete the feeds.
+#
+# You should pass the /logs endpoint to this script for instance
+#
+# ./log-digest somesite.tumblr.com/logs
+#
 require 'rubygems'
 require 'bundler'
 Bundler.require
