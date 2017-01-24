@@ -1,3 +1,8 @@
+#!/usr/bin/env ruby
+#
+# asset-grab will pull down the assets that get logged from a tumblr site.  
+# You should have already ran a `log-digest` over the list before running this.
+#
 require 'rubygems'
 require 'bundler'
 Bundler.require
